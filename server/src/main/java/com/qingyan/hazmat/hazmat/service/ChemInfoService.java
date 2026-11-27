@@ -9,14 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Year;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * 台账管理：建档（CAS 查重命中→挂既有台账不阻断，G-7；编码 HG-<类别码>-年-4位序）→
  * 维护（类别守卫 4107——类别是编码与审批链主轴，有批次/存量禁改；stock_qty/cas_no
  * 为台账主键性字段，不可经 update 变更）→ 逻辑删除（三条件）/ 封存解封（仅 0↔1）。
- * 台账封存=停止领用（4504 源头）；"封存即扣减"发生在批次惰性封存侧，与本服务无关。
+ * 台账封存=停止领用（4504 源头）；"封存即扣减"本应在过期封存侧发生，但该入口尚未接入，与本服务无关。
  */
 @Service
 public class ChemInfoService {
@@ -125,15 +124,6 @@ public class ChemInfoService {
             throw new BizException(4101, "状态未变化");
         }
         chemMapper.updateStatus(id, status);
-    }
-
-    /**
-     * 台账列表（mine/todo 过滤）。共享 ChemInfoMapper 未提供全量列表查询
-     * （共享持久层不得修改），列表 SQL 由 mapper 扩展承担——扩展（selectList）
-     * 落地后本方法直通替换为 chemMapper.selectList(...)。
-     */
-    public List<ChemInfo> list() {
-        throw new UnsupportedOperationException("台账列表查询待 ChemInfoMapper 扩展（selectList）");
     }
 
     /** 档案聚合：台账 + 批次列表（在库批次 FEFO 序；全量批次列表由 mapper 扩展承担）。 */

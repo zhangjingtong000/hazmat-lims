@@ -208,7 +208,7 @@ public class DemoDataRunner implements ApplicationRunner {
         ChemInfo nacl = chem("HG-PT-2026-0012", "氯化钠", "7647-14-5", 0, "GEN", null, cabJd, "GHS07", "常规化学品");
         ChemInfo feso4 = chem("HG-RD-2026-0013", "七水硫酸亚铁", "7782-63-0", 1, "RD", null, cabOrg, "GHS07", "还原剂，与氧化剂隔离");
 
-        // ── 批次（含临期批 + 过期封存批，供 FEFO/封存/预警演示）──
+        // ── 批次（含临期批 + 预置的过期封存批——运行时无封存入口，此处直接置 status=3 供演示）──
         batch(acetone, "LOT-20260301", "6", LocalDate.now().plusYears(1), cabOrg, 0);
         batch(kmno4, "LOT-20260401", "4", LocalDate.now().plusYears(2), cabOx, 0);
         batch(etoh, "LOT-20260201", "10", LocalDate.now().plusMonths(2), cabOrg, 0);
@@ -273,7 +273,7 @@ public class DemoDataRunner implements ApplicationRunner {
                 + "申购需三级审批（导师→安全员→学院）。");
         qa("有多少过期批次？",
             intent("stats", "", null, null, null),
-            "当前过期封存批次 1 个：浓硫酸 LOT-20240101 共 2 瓶（过期即封存并扣减台账现存），"
+            "当前过期封存批次 1 个：浓硫酸 LOT-20240101 共 2 瓶（演示数据预置；批次置 status=3 暂无运行时入口，需人工改库），"
                 + "可通过废弃处置流程（过期整批）核销。");
         qa("氧化剂柜里存了哪些化学品？",
             intent("stats", "氧化剂柜", null, null, null),

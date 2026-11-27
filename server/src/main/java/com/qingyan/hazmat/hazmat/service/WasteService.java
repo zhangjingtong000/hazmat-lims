@@ -21,8 +21,9 @@ import java.util.List;
 /**
  * 废弃物处置（R4 销账侧）：批次匹配守卫（batch.chemical_id==chemical_id，⑦-11——
  * 错批即销错台账）；type=1/2 废液/空瓶=在库批次销账（批次条件扣减 + 台账同事务同步），
- * type=3 过期整批=仅销批次（wipeBatch：qty_left→0、status 3→2，封存时台账已扣，
- * 双扣守卫——不再动台账）。审批单级（v3 修订）：category≤1 学院须持 audit-college /
+ * type=3 过期整批=仅销批次（wipeBatch：qty_left→0、status 3→2；口径假设"封存时台账已扣"，
+ * 故不再动台账）。注意：当前没有把批次置 status=3 的运行时入口（updateBatchStatus 零调用点），
+ * 该分支只对演示种子或人工改库的批次生效。审批单级（v3 修订）：category≤1 学院须持 audit-college /
  * category≥2 校级须持 audit-campus（与申购链同轴）；approver≠operator 回避（⑦-8）；
  * 审批结论复用通用审批记录 approval_record（biz_type=2），UNIQUE 兜底转 4103。
  */
@@ -157,7 +158,7 @@ public class WasteService {
         }
         // 销账（与置已处置同事务，R4 守恒）
         if (wd.getType() != null && wd.getType() == TYPE_EXPIRED) {
-            // type=3 过期整批：仅销批次（封存时台账已扣，双扣守卫——不再动 stock_qty）
+            // type=3 过期整批：仅销批次（口径假设封存时台账已扣，故不再动 stock_qty；status=3 目前只能演示种子/人工改库产生）
             if (chemMapper.wipeBatch(wd.getBatchId()) == 0) {
                 throw new BizException(4502, "封存批次状态已变化，销账失败");
             }

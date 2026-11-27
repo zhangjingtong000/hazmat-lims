@@ -21,7 +21,7 @@ import java.util.Map;
  * G5 定时任务：把"靠人被动查询"的监管口径变成主动扫描 + 站内信推送（G6 通道）。
  *
  * <ul>
- *   <li>{@code scanExpiry}：批次效期扫描——已过期（自动封存口径）与临近预警
+ *   <li>{@code scanExpiry}：批次效期扫描——已过期（只推送提醒，不自动封存）与临近预警
  *       （默认 30 天，取台账 expiry_warn_days 的最小值兜底）分别推送</li>
  *   <li>{@code scanApprovedNotStockedIn}：已批超 7 天未入库（申购预警口径）推送，
  *       让"该入库的没人管"不再只出现在看板上</li>
@@ -76,7 +76,7 @@ public class HazmatScheduler {
                 boolean pushed = notifyService.push(null, "expiry",
                         "批次已过期：" + row.get("chem_name") + " / " + row.get("lot_no"),
                         "效期 " + row.get("expiry_date") + " 已过，按制度应立即封存并禁止发放；"
-                                + "请到「批次监管」核对并走废弃处置流程。",
+                                + "当前系统未接自动封存，请核对后由管理员在库中置 status=3，再走废弃处置流程。",
                         "chem_batch", asLong(row.get("id")), 12);
                 expiredPushed += pushed ? 1 : 0;
             }

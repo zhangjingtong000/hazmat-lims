@@ -10,21 +10,25 @@ flowchart TB
   UI["Vue 3 单页 · 29 条路由"] --> C["Controller ×21 · 79 个端点<br/>参数校验 / 权限键声明 / 结果封装"]
   C --> S["Service 业务规则层"]
   S --> R["规则判定<br/>compat_rule 配对集 · FEFO 选取 · 条件扣减"]
-  S --> M["Mapper ×20<br/>写操作一律条件更新"]
+  S --> M["Mapper ×20<br/>关键流转走条件更新"]
   R --> M
   M --> DB[("H2 / MySQL 8 · 22 张业务表")]
 ```
 
-一条写操作的基本形状：Service 先查规则表做判定，判定通过后转成一条带 `WHERE 状态=期望` 的 UPDATE，
-用受影响行数当"成功/被并发抢先"的判据，最后在同一个事务里同时改批次余量与台账在库量。
+关键流转（借出 / 归还 / 报废 / 销账）的基本形状：Service 先查规则表做判定，判定通过后转成一条带
+`WHERE 状态=期望` 的 UPDATE，用受影响行数当"成功/被并发抢先"的判据，最后在同一个事务里同时改批次余量与台账在库量。
+基础信息修改（`chem_info.update` / `updateStatus`）不套这个形状：先读后写、`WHERE id=?` 直改，
+面向单用户维护档案的场景，不是并发防护。
 
 ## 三个不好糊弄的地方
 
-### 一、禁配矩阵：必须双向有序对，必须禁止自反
+### 一、禁配矩阵：按排序键匹配，自反必须禁止
 
-`compat_rule(group_a, group_b)` 里一行只表达一个方向。判冲突时是把柜内在库批次的相容组与规则集做两两配对，
-所以「酸 × 碱」和「碱 × 酸」都得存在——只写一条，另一方向就漏判，这属于规则数据本身的正确性问题，
-不能靠查询语句去补。因此新增规则时成对写两行，删除时按双向条件一次删两行；两条写操作同事务，不会出现半对规则。
+`compat_rule(group_a, group_b)` 按有序对存储。判冲突时把柜内在库批次的相容组与规则集两两配对，
+配对键由 `CompatService.pairKey` 生成——先把两端字符串排序再拼接。顺序在键里被抹平，所以**判定的查询本身方向无关**：
+只存 `(酸, 碱)` 一行，`(碱, 酸)` 的查询同样命中；"只写一条另一方向就漏判"的说法不成立。
+新增/删除仍成对写两行（两条写操作同事务，不会出现半对规则），目的是让规则表每对完整、列表展示与人工维护
+口径一致，不是判定正确性的必要条件。真正防重的是 `UNIQUE(group_a, group_b)`。
 
 自反（`group_a = group_b`）在服务层直接拒绝。同组化学品同柜是常态，若允许自反规则，等于一条数据就能
 让某类化学品全场无处可放，而且这种"规则把自己禁掉"的故障极难从日志里看出来。
@@ -55,9 +59,19 @@ flowchart TB
 过期封存的批次按口径已退出 Σ（不计入在库量），销账时只把余量清零，不再动台账。
 任何一边的条件更新没命中，整个事务回滚，账面不会留下只改了半边的中间态。
 
+**现状标注（两条缺口）**：
+
+- 过期封存（批次 `status=3`）在默认流程下不可达。`ChemInfoMapper.updateBatchStatus` 没有调用点，
+  效期调度（`HazmatScheduler.scanExpiry`）只推站内信提醒，不迁移状态；要把批次置为 3 只能人工改库。
+  因此依赖 `status==3` 的 type=3 废弃处置单（`WasteService` 硬校验，不满足返回 4502）在默认流程下
+  永远打不通。补入口时要一并定"封存即扣台账"的口径——现在代码里没有这个扣减动作。
+- 这条不变量是**设计约定 + 守卫**，不是可检测的断言。`sumBatchLeft` 只在两处用到：改类别前的存量判断
+  与删除前的存量判断（`ChemInfoService.update` / `remove`），全仓没有任何地方把 Σ 批次余量与 `stock_qty`
+  做比较，也没有周期性校验点。某条路径漏写不会报错，只会账实不符；要核对得手工跑 SQL 或另加只读校验接口。
+
 盘点因此必须分两段：`finish` 只把当时的批次余量快照成账面数、记录实盘数与差值，**一行库存都不动**；
 `adjust` 才按差值做增量修正（正加负减，绝不"直接设成实盘数"），且每条差异只能调一次。
-调账前还要确认批次仍在库——结单到调账之间批次可能已被封存，此时对不在 Σ 里的批次做加减会直接破坏不变量，
+调账前还要确认批次仍在库——结单到调账之间批次可能已被封存（人工置 `status=3` 或演示种子预置），此时对不在 Σ 里的批次做加减会直接破坏不变量，
 所以这类差异行会被标注为需要重盘并拒绝调账。
 
 ## 快速开始
@@ -103,7 +117,7 @@ mysql -uroot -p --default-character-set=utf8mb4 \
 sed -E 's/^CREATE (UNIQUE )?INDEX IF NOT EXISTS/CREATE \1INDEX/' \
   server/src/main/resources/schema.sql > /tmp/schema-mysql.sql
 
-# 3) 导入（转换后 22 张表 / 44 个索引，exit 0）
+# 3) 导入（转换后 22 张表 / 44 个索引对象 = 24 条显式 CREATE INDEX + 20 个表内主键，exit 0）
 mysql -uroot -p --default-character-set=utf8mb4 hazmat < /tmp/schema-mysql.sql
 
 # 4) 启动。建表已手工完成，初始化模式设为 never
@@ -143,7 +157,7 @@ MySQL 8.0.45 免安装实例：mysqld --initialize-insecure（root 空口令）�
 原始 schema.sql 导入 → exit 1
   ERROR 1064 (42000) at line 32: ... near 'IF NOT EXISTS uk_chem_code ON chem_info(code)'
   （在第一条索引处中止，只建成 1 张表）
-转换后导入 → exit 0，22 张表 / 44 个索引
+转换后导入 → exit 0，22 张表 / 44 个索引对象（24 条显式 CREATE INDEX + 20 个表内主键）
 MYSQL_INIT_MODE=always → 启动失败（statement #2 同一条索引语句），exit 1
 MYSQL_INIT_MODE=never  → GET /health 200
   {"status":"UP","version":"1.0.0","checks":{"db":"up","regs":"up(128)","ai":"degraded(no-key)"}}
@@ -220,8 +234,9 @@ BASE_URL=http://localhost:8081 npx playwright test
 - **SQL 只用 H2 与 MySQL 都支持的函数。** 效期预警与「已批超期未入库」用 `TIMESTAMPDIFF(DAY, a, b)`，两库语义一致；
   需要按自然日比较时再套 `CAST(audit_time AS DATE)` 保持原口径。`DATEDIFF` 的三参数形式、`FORMATDATETIME`
   这类 H2 专有写法不进 SQL。
-- **写操作一律带条件**（`WHERE 状态=期望`），以受影响行数判断成功与否，判据不放在「先查再改」里；
-  涉及多表的写路径把事务边界声明在 Service 方法上。
+- **关键流转走条件更新**（`WHERE 状态=期望`），以受影响行数判断成功与否，判据不放在「先查再改」里：
+  批次扣减/回加、单据状态推进、销账属于这一类。**基础信息修改走无条件更新**：`chem_info.update` 按 id 直改、
+  `updateStatus` 由 Service 先读后写，面向单用户维护档案，不承担并发防护。涉及多表的写路径把事务边界声明在 Service 方法上。
 
 ## 技术栈
 
