@@ -27,6 +27,7 @@ import com.qingyan.hazmat.system.mapper.SysRoleMapper;
 import com.qingyan.hazmat.system.mapper.SysUserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -40,11 +41,19 @@ import java.util.List;
  * 首次启动注入演示数据（幂等：sys_user 已有数据则跳过）。
  * 密码一律 PasswordUtil 散列；种子规格=详细设计 §7（13 种化学品真实 CAS、柜位 6、
  * 禁配 6 对、25 按钮键菜单树、四级审批全链单据、临期/过期批次）。
+ * admin 口令可被环境变量 {@code APP_SEED_ADMIN_PASSWORD} 覆盖；未设置时回落到演示默认值，
+ * 并在启动日志打印一行不含口令本身的警告。
  */
 @Component
 public class DemoDataRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataRunner.class);
+
+    /** 演示默认管理员口令：仅用于本地演示；未设置环境变量 APP_SEED_ADMIN_PASSWORD 时回落到它。 */
+    private static final String DEFAULT_ADMIN_PASSWORD = "admin123";
+
+    private final String adminPassword;
+    private final boolean adminPasswordIsDefault;
 
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
@@ -67,7 +76,8 @@ public class DemoDataRunner implements ApplicationRunner {
                           RequisitionBatchMapper requisitionBatchMapper,
                           ApprovalRecordMapper approvalRecordMapper,
                           com.qingyan.hazmat.system.mapper.DictItemMapper dictMapper,
-                          com.qingyan.hazmat.hazmat.mapper.AiQaCacheMapper aiQaCacheMapper) {
+                          com.qingyan.hazmat.hazmat.mapper.AiQaCacheMapper aiQaCacheMapper,
+                          @Value("${APP_SEED_ADMIN_PASSWORD:}") String seedAdminPassword) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
         this.menuMapper = menuMapper;
@@ -81,19 +91,29 @@ public class DemoDataRunner implements ApplicationRunner {
         this.approvalRecordMapper = approvalRecordMapper;
         this.dictMapper = dictMapper;
         this.aiQaCacheMapper = aiQaCacheMapper;
+
+        String envPassword = seedAdminPassword == null ? "" : seedAdminPassword.trim();
+        this.adminPasswordIsDefault = envPassword.isEmpty();
+        this.adminPassword = adminPasswordIsDefault ? DEFAULT_ADMIN_PASSWORD : envPassword;
     }
 
     @Override
     public void run(ApplicationArguments args) {
         if (userMapper.selectPage(null, 0, 1).isEmpty()) {
             seed();
-            log.info("== 演示数据已注入：admin/admin123（管理员），zhang（导师）、li（安全员）、"
+            if (adminPasswordIsDefault) {
+                log.warn("== 安全提示：admin 使用演示默认口令（未设置环境变量 APP_SEED_ADMIN_PASSWORD），"
+                        + "仅限本地演示，部署前请用该环境变量覆盖 ==");
+            } else {
+                log.info("== 管理员 admin 的口令取自环境变量 APP_SEED_ADMIN_PASSWORD（不回显） ==");
+            }
+            log.info("== 演示数据已注入：admin（管理员，口令见 README 说明），zhang（导师）、li（安全员）、"
                     + "wang（学院）、zhao（校级）、chen/liu（申请人）密码 123456 ==");
         }
     }
 
     private void seed() {
-        long admin = user("admin", "admin123", "系统管理员");
+        long admin = user("admin", adminPassword, "系统管理员");
         long advisor = user("zhang", "123456", "张教授（导师）");
         long safety = user("li", "123456", "李安全员");
         long college = user("wang", "123456", "王院长（学院）");

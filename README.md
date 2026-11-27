@@ -72,7 +72,8 @@ mvn -q spring-boot:run          # 首次启动自动建表并注入演示数据�
 curl http://localhost:8080/health
 ```
 
-打开 `http://localhost:8080`，演示账号 `admin / admin123`（生产务必改）。数据落在 `server/data/` 下的 H2 文件库。
+打开 `http://localhost:8080`，演示账号 `admin / admin123`（生产务必改，或启动前设 `APP_SEED_ADMIN_PASSWORD` 覆盖）。
+数据落在 `server/data/` 下的 H2 文件库。
 
 **实测（2026-11-27，Windows / JDK 21.0.8 / Maven 3.9.9）**：
 
@@ -169,7 +170,10 @@ BASE_URL=http://localhost:8081 npx playwright test
 - **`spring.sql.init.mode` 默认 `always`。** 每次启动都会执行 `schema.sql`（全部
   `IF NOT EXISTS`，幂等）；MySQL 生产库若已由 DBA 建好，必须设 `MYSQL_INIT_MODE=never`，
   否则会在建索引语句上失败。
-- **口令与密钥是演示值。** `admin/admin123` 仅供本地演示；`APP_TOKEN_SECRET` 未设置时回落到
+- **口令与密钥是演示值。** 演示口令默认值仅用于本地演示，可通过 `APP_SEED_ADMIN_PASSWORD` 覆盖：
+  设置后种子里 admin 的初始口令就是它，未设置则回落到 `admin/admin123`（开箱即用）；
+  两种情况下启动日志都不回显口令本体，用默认值时打印一行警告。
+  `APP_TOKEN_SECRET` 未设置时回落到
   开发默认值（生产务必显式设置）。`DEEPSEEK_API_KEY` 未设置时 `/health` 显示
   `ai=degraded(no-key)`，AI 问答降级为规则路径，不影响业务主流程。
 - **不覆盖 GHS 全量分类**（见「范围说明」）：只有 7 个自定义相容组，判"同柜互斥"，
