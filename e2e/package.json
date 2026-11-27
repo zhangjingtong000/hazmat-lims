@@ -1,0 +1,13 @@
+{
+  "name": "hazmat-lims-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright 端到端测试（后端需先起在 8081）",
+  "scripts": {
+    "test": "playwright test",
+    "list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

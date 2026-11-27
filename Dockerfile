@@ -5,7 +5,7 @@
 #            server/src/main/resources/static/ 前端产物）
 #   运行：docker run -d --name hazmat -p 8081:8081 \
 #            -e APP_TOKEN_SECRET="$(openssl rand -hex 32)" \
-#            -e DEEPSEEK_API_KEY="sk-..." \
+#            -e DEEPSEEK_API_KEY="<your-api-key>" \
 #            -v hazmat-data:/app/data hazmat-management:1.0.0
 #   探针：GET /health（curl -fsS http://localhost:8081/health）
 #   说明：镜像内为 H2 文件库（数据卷 /app/data）；改用 MySQL 时传

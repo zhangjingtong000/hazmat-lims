@@ -94,7 +94,7 @@ Windows 无 `sed` 时用 PowerShell 做同样替换（脚本要存成无 BOM 的
 
 ```bash
 cd web && npm ci && npm run build
-cp -r dist/. ../server/src/main/resources/static/    # 再启动后端即同源访问
+mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/resources/static/   # 再启动后端即同源访问
 # 开发模式：后端加 --server.port=8081，另开 npm run dev（5174，代理已指向 8081）
 ```
 
@@ -102,7 +102,7 @@ cp -r dist/. ../server/src/main/resources/static/    # 再启动后端即同源�
 
 ```bash
 cd server && mvn -q test        # 202 个单元测试，0 失败（JUnit 5 + Mockito）
-cd e2e && npm i -D @playwright/test && npx playwright install chromium
+cd e2e && npm install && npx playwright install chromium
 npx playwright test             # 29 个 E2E（后端需先在 8081 就绪）
 ```
 

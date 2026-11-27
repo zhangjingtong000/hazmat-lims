@@ -58,3 +58,6 @@ Thumbs.db
 .env.*
 *.pem
 *.key
+
+# ── 本地构建报告（仅本地留存，不随仓库发布）──
+/BUILD-REPORT.md
