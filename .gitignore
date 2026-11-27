@@ -38,6 +38,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+# E2E 用例自己截的取证图（每次跑都会重新生成）
+e2e/report/
 surefire-reports/
 failsafe-reports/
 

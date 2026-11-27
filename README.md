@@ -69,9 +69,24 @@ flowchart TB
 ```bash
 cd server
 mvn -q spring-boot:run          # 首次启动自动建表并注入演示数据，端口 8080
+curl http://localhost:8080/health
 ```
 
 打开 `http://localhost:8080`，演示账号 `admin / admin123`（生产务必改）。数据落在 `server/data/` 下的 H2 文件库。
+
+**实测（2026-11-27，Windows / JDK 21.0.8 / Maven 3.9.9）**：
+
+```text
+$ cd server && mvn -o spring-boot:run
+$ curl http://localhost:8080/health
+HTTP 200
+{"status":"UP","version":"1.0.0","time":"2026-11-27 14:37:37",
+ "checks":{"db":"up","regs":"up(128)","ai":"degraded(no-key)"}}
+```
+
+`db=up` 表示 H2 建表 + 种子数据就绪；`regs=up(128)` 是加载到的法规条目数；
+`ai=degraded(no-key)` 是**预期状态**——没配 `DEEPSEEK_API_KEY` 时 AI 层自动降级，
+不影响主流程。想从头再来一遍：停服后删掉 `server/data/` 再启动。
 
 ### MySQL 8
 
@@ -100,14 +115,35 @@ mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/
 
 ## 测试
 
+2026-11-27 在本机实测（Windows / JDK 21.0.8 / Maven 3.9.9 / Node 22.20.0）：
+
+| 项 | 命令 | 实测结果 |
+|---|---|---|
+| 后端单测 | `cd server && mvn -q test` | **Tests run: 202, Failures: 0, Errors: 0, Skipped: 0**（17 个测试类，`-o` 离线可跑） |
+| 前端依赖 | `cd web && npm ci` | `added 126 packages in 36s`（首次需联网） |
+| 前端构建 | `cd web && npm run build` | **vite 6.4.3，2349 modules transformed，29.92 s**；`dist/index.html` 1.90 kB、CSS 427.77 kB、JS 3 377.62 kB（gzip 1 066.31 kB）；只有「chunk 大于 500 kB」提示 |
+| E2E | `cd e2e && npx playwright test` | **29 passed（1.2 m，4 workers）** |
+
+E2E 要求**后端在 8081 上同时提供前端页面与 API**。先把 `dist/` 交给后端同源提供，再起服务：
+
 ```bash
-cd server && mvn -q test        # 202 个单元测试，0 失败（JUnit 5 + Mockito）
-cd e2e && npm install && npx playwright install chromium
-npx playwright test             # 29 个 E2E（后端需先在 8081 就绪）
+cd web && npm run build
+
+# 方式 A：拷进静态目录后重新打包（上面的标准路径）
+mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/resources/static/
+
+# 方式 B：不重新打包，启动时把静态目录指过去（本轮实测用的这条）
+cd ../server && java -jar target/hazmat-management-1.0.0.jar --server.port=8081 \
+  --spring.web.resources.static-locations=file:///E:/github/publish/hazmat-lims/web/dist/ \
+  --spring.datasource.url='jdbc:h2:file:./data/e2e-hazmat;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE'
+
+# 首次需要浏览器二进制（约 124 MB）；缺了 29 条会全部报 Executable doesn't exist
+cd ../e2e && npm ci && npx playwright install chromium
+BASE_URL=http://localhost:8081 npx playwright test
 ```
 
 单测集中在规则本身：禁配的成对命中与自反拒绝、FEFO 跨批拆分与"扣空换批"、盘点两段分离、
-改派的条件更新幂等、超量归还拦截。E2E 覆盖登录、申购四级审批、领用双签出库、盘点调账等主链路。
+改派的条件更新幂等、超量归还拦截。E2E 覆盖登录、申购审批链、领用双签出库、盘点调账等主链路。
 
 ## 技术栈
 
@@ -116,6 +152,27 @@ npx playwright test             # 29 个 E2E（后端需先在 8081 就绪）
 | 后端 | Spring Boot 4.0.3 / Java 17 / MyBatis（mybatis-spring-boot 4.0.1）/ Spring AOP |
 | 数据库 | H2 2.x（MODE=MySQL，单文件库）或 MySQL 8.x |
 | 前端 | Vue 3.5 / Vue Router 4 / Element Plus 2.9 / ECharts 6 / Three.js 0.186 / Vite 6 |
+
+## 已知限制
+
+- **MySQL 8 分支未实测。** `schema.sql` 的 `CREATE INDEX IF NOT EXISTS` 在 MySQL 8 非法（1064），
+  README 给了 `sed` 转换脚本与 `MYSQL_INIT_MODE=never`，但本轮没有 MySQL 8 实例可连，
+  「MySQL 生产路径」只有静态检查，没有跑通证据。
+- **E2E 不是一条 `npm test` 就能跑。** 它依赖三件环境：① 后端在 8081 提供同源页面与 API；
+  ② `web/dist/` 已构建；③ Playwright 浏览器已安装。缺任何一件时，失败信息都容易误读成业务失败
+  —— 尤其缺浏览器时报 `Executable doesn't exist at ...chromium_headless_shell-1255`。
+- **H2 是单文件库，同一库不能被两个进程同时打开。** 做 E2E 或并行验证时请用独立库路径
+  （如上文的 `./data/e2e-hazmat`），否则第二个实例会在启动时锁失败。
+- **`spring.sql.init.mode` 默认 `always`。** 每次启动都会执行 `schema.sql`（全部
+  `IF NOT EXISTS`，幂等）；MySQL 生产库若已由 DBA 建好，必须设 `MYSQL_INIT_MODE=never`，
+  否则会在建索引语句上失败。
+- **口令与密钥是演示值。** `admin/admin123` 仅供本地演示；`APP_TOKEN_SECRET` 未设置时回落到
+  开发默认值（生产务必显式设置）。`DEEPSEEK_API_KEY` 未设置时 `/health` 显示
+  `ai=degraded(no-key)`，AI 问答降级为规则路径，不影响业务主流程。
+- **不覆盖 GHS 全量分类**（见「范围说明」）：只有 7 个自定义相容组，判"同柜互斥"，
+  不做隔离/隔开/分离的距离计算，不解析 SDS、不按储量阈值分级。
+- **本轮环境事实**：本机 Maven 3.9.9 未加入 `PATH`，单测与 `spring-boot:run` 是用临时解压的
+  Maven 二进制跑的；README 里的命令本身未改。
 
 ## 范围说明
 
