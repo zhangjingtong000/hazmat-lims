@@ -62,7 +62,7 @@ flowchart TB
 
 ## 快速开始
 
-环境：JDK 17+、Maven 3.9+；数据库用自带 H2 或自备 MySQL 8。不需要任何私有仓库。
+环境：JDK 17+、Maven 3.9+；数据库用自带 H2 或自备 MySQL 8.0.x（本轮实测 8.0.45）。不需要任何私有仓库。
 
 ### 默认（内嵌 H2，一条命令）
 
@@ -91,20 +91,66 @@ HTTP 200
 
 ### MySQL 8
 
+实测版本 8.0.45（Community Server）。库名、口令、端口一律走环境变量，命令里不出现真实口令。
+下面四条都在**仓库根目录**执行（注意 `cd server` 只在最后一步）。
+
 ```bash
-mysql -uroot -p -e "CREATE DATABASE hazmat DEFAULT CHARACTER SET utf8mb4"
-# MySQL 8 不认 CREATE INDEX IF NOT EXISTS：先去掉该子句生成等价建表脚本
+# 1) 建库。不写 COLLATE 就用 MySQL 8 默认的 utf8mb4_0900_ai_ci，实测可用
+mysql -uroot -p --default-character-set=utf8mb4 \
+  -e "CREATE DATABASE hazmat DEFAULT CHARACTER SET utf8mb4"
+
+# 2) 生成 MySQL 版建表脚本：MySQL 8 不认 CREATE INDEX IF NOT EXISTS
 sed -E 's/^CREATE (UNIQUE )?INDEX IF NOT EXISTS/CREATE \1INDEX/' \
   server/src/main/resources/schema.sql > /tmp/schema-mysql.sql
-mysql -uroot -p hazmat < /tmp/schema-mysql.sql
+
+# 3) 导入（转换后 22 张表 / 44 个索引，exit 0）
+mysql -uroot -p --default-character-set=utf8mb4 hazmat < /tmp/schema-mysql.sql
+
+# 4) 启动。建表已手工完成，初始化模式必须改成 never
 export MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DATABASE=hazmat \
-       MYSQL_USERNAME=root MYSQL_PASSWORD='***' MYSQL_INIT_MODE=never
-mvn -q spring-boot:run -Dspring-boot.run.profiles=mysql
+       MYSQL_USERNAME=hazmat MYSQL_PASSWORD='***' MYSQL_INIT_MODE=never
+cd server && mvn -q spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
-`MYSQL_INIT_MODE=never` 是关键：建表已手工完成，若仍让应用执行 `schema.sql`，会在建索引语句上直接失败。
-Windows 无 `sed` 时用 PowerShell 做同样替换（脚本要存成无 BOM 的 UTF-8，否则 MySQL 客户端读首行会报错）：
-`(Get-Content server\src\main\resources\schema.sql) -replace '^CREATE (UNIQUE )?INDEX IF NOT EXISTS','CREATE $1INDEX' | Set-Content -Encoding utf8 schema-mysql.sql`
+跳过第 2 步直接导入，第 32 行第一条 `CREATE UNIQUE INDEX IF NOT EXISTS` 就报
+`ERROR 1064 (42000)`；mysql 客户端在批处理模式下随即中止，22 张表里只建成 1 张。
+`MYSQL_INIT_MODE` 留在默认 `always` 时，应用启动会在同一条语句上失败
+（`Failed to execute SQL script statement #2 of file [...schema.sql]`），所以必须显式设 `never`。
+
+Windows 没有 `sed` 时用 PowerShell 做同样替换。两个坑：`Get-Content` 默认按 ANSI 解码，
+必须先加 `-Encoding UTF8`，否则脚本里的中文注释会乱码；`Set-Content -Encoding utf8`
+在 PowerShell 5.1 下写出的是带 BOM 的 UTF-8。实测 8.0.45 的客户端能吞掉 BOM，
+但不保证换版本还如此，稳妥写法是直接写无 BOM：
+
+```powershell
+$lines = Get-Content -Path server\src\main\resources\schema.sql -Encoding UTF8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllLines('schema-mysql.sql',
+  ($lines -replace '^CREATE (UNIQUE )?INDEX IF NOT EXISTS','CREATE $1INDEX'), $utf8NoBom)
+```
+
+`-replace` 要作用在逐行数组上，`^` 才锚得住行首；若对整段文本替换，正则需加 `(?m)`。
+
+**MySQL 分支实测（2026-11-27，Windows / JDK 21.0.8 / Maven 3.9.9）**：
+
+```text
+MySQL 8.0.45 免安装实例：mysqld --initialize-insecure（root 空口令），独立 datadir
+端口 3307（本机 3306 已被既有实例占用），character-set-server=utf8mb4，default-time-zone=+08:00
+库 hazmat（默认 utf8mb4_0900_ai_ci）
+
+原始 schema.sql 导入 → exit 1
+  ERROR 1064 (42000) at line 32: ... near 'IF NOT EXISTS uk_chem_code ON chem_info(code)'
+  （在第一条索引处中止，只建成 1 张表）
+转换后导入 → exit 0，22 张表 / 44 个索引
+MYSQL_INIT_MODE=always → 启动失败（statement #2 同一条索引语句），exit 1
+MYSQL_INIT_MODE=never  → GET /health 200
+  {"status":"UP","version":"1.0.0","checks":{"db":"up","regs":"up(128)","ai":"degraded(no-key)"}}
+```
+
+管理员登录 `code:0`；`/chem/stats/dashboard`、`/chem/stats/ledger`、`/chem/info/list`
+等只读接口全部 `code:0`；申购单创建 → 提交 → 审批中写链路成功；中文按 UTF-8 存取一致
+（`HEX('无水乙醇')` = `E697A0E6B0B4E4B999E98687`，与 Java 写入值逐字节相同）；
+`mvn -q test` 在 MySQL profile 改动后仍是 202 条全过。
 
 ### 前端
 
@@ -156,12 +202,19 @@ BASE_URL=http://localhost:8081 npx playwright test
 
 ## 已知限制
 
-- **MySQL 8 分支已实测，但仍属「本机临时实例」级别。** 用临时 MySQL 8.0.45 实例验证过：
-  `schema.sql` 的 `CREATE INDEX IF NOT EXISTS` 触发 `ERROR 1064`；按 README 给的 `sed` 转换
-  脚本处理后（22 张表 / 25 个索引，exit 0），以 `--profiles=mysql` + `MYSQL_INIT_MODE=never`
-  启动到 `/health` UP（db 正常、`ai=degraded(no-key)`），登录接口返回 UTF-8 正常；
-  `MYSQL_INIT_MODE` 保持 `always` 的对照路径同样验证过——启动即失败。未验证的是 DBA 托管的
-  库、主从与生产参数调优。
+- **MySQL 8 分支已完整实测，范围仅限本机单实例。** 2026-11-27 用 8.0.45 免安装实例
+  （端口 3307、独立 datadir）把 README 的四步跑通：原始 `schema.sql` 在 line 32 第一条
+  `CREATE INDEX IF NOT EXISTS` 上报 `ERROR 1064` 并中止（只建成 1 张表）；转换脚本改写
+  24 条索引语句后导入成功（22 表 / 44 索引）；`MYSQL_INIT_MODE=never` 启动后 `/health` 为
+  UP、`db=up`，登录、看板、申购写链路都正常，中文按 UTF-8 存取一致；
+  `MYSQL_INIT_MODE=always` 的对照启动如实失败。未覆盖：MySQL 5.7、DBA 托管的库、
+  主从复制、跨时区实例与生产参数调优。
+- **预警查询不再使用 H2 专属函数。** 看板的效期预警与「已批超期未入库」原用三参数
+  `DATEDIFF('DAY', a, b)`，MySQL 的 `DATEDIFF` 只接两个参数，MySQL 下
+  `/chem/stats/dashboard` 会直接 500。现统一为 `TIMESTAMPDIFF(DAY, a, b)`（H2 2.x 与
+  MySQL 8 语义一致），后者再加 `CAST(audit_time AS DATE)` 保持「按自然日」的原口径。
+  新增 SQL 时应沿用这条：只用两库都有的函数，避免 `DATEDIFF` 三参、`FORMATDATETIME`
+  这类 H2 专有写法。
 - **E2E 不是一条 `npm test` 就能跑。** 它依赖三件环境：① 后端在 8081 提供同源页面与 API；
   ② `web/dist/` 已构建；③ Playwright 浏览器已安装。缺任何一件时，失败信息都容易误读成业务失败
   —— 尤其缺浏览器时报 `Executable doesn't exist at ...chromium_headless_shell-1255`。

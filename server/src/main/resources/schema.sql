@@ -1,9 +1,10 @@
 -- hazmat-lims / hazmat-management 数据库 schema（H2 MODE=MySQL 兼容，MySQL profile 同源）
--- 21 表：化学品域 13 + 系统域 8。幂等建表（IF NOT EXISTS），演示数据由应用层注入。
+-- 22 表：化学品域 14 + 系统域 8。幂等建表（IF NOT EXISTS），演示数据由应用层注入。
+-- 注意：CREATE INDEX IF NOT EXISTS 是 H2 语法；MySQL 8 导入前需按 README 的转换脚本去掉 IF NOT EXISTS。
 -- 规格：详细设计 v8 §2（冻结版）。守卫/约束在服务层（守卫失败码见错误码表），DB 层仅做
 -- 结构性约束（唯一键防并发重复审批等）。
 
--- ══════════ 化学品域（13 表）══════════
+-- ══════════ 化学品域（14 表）══════════
 
 -- 台账主表（category 单值取最高风险类别；stock_qty=Σ批次余量，事务内原子维护）
 CREATE TABLE IF NOT EXISTS chem_info (

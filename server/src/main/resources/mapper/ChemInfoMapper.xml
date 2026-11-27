@@ -162,7 +162,7 @@
         JOIN chem_info ci ON b.chemical_id = ci.id
         WHERE b.status = 0 AND b.qty_left &gt; 0 AND b.expiry_date IS NOT NULL
           AND ci.deleted = 0
-          AND DATEDIFF('DAY', CURRENT_DATE, b.expiry_date)
+          AND TIMESTAMPDIFF(DAY, CURRENT_DATE, b.expiry_date)
               &lt;= COALESCE(ci.expiry_warn_days, 30)
     </select>
 
