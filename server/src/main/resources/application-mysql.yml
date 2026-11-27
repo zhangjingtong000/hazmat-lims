@@ -1,0 +1,39 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# MySQL 生产 profile：--spring.profiles.active=mysql
+# 前置条件（见 README「多环境配置」）：
+#   1) 已建库：CREATE DATABASE hazmat DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+#   2) 环境变量：MYSQL_HOST / MYSQL_PORT / MYSQL_DATABASE / MYSQL_USERNAME / MYSQL_PASSWORD
+#      （口令只走环境变量，仓库内不出现真实值——E12）
+#   3) 首次启动自动执行 db/schema.sql 建表（spring.sql.init.mode=always），
+#      随后 db/migration/V*.sql 由 SchemaMigrationRunner 按序补丁并登记 schema_version。
+#   4) 令牌密钥：APP_TOKEN_SECRET（未设置时回落到 application.yml 的开发默认值）
+# ═══════════════════════════════════════════════════════════════════════════
+spring:
+  sql:
+    init:
+      # 生产库由 DBA 预置时改为 never；默认 always 便于新库一键初始化（脚本全部 IF NOT EXISTS）
+      mode: ${MYSQL_INIT_MODE:always}
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:hazmat}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:hazmat}
+    password: ${MYSQL_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 10000
+      pool-name: hazmat-pool
+
+# MySQL 下无需 H2 兼容开关；日志级别沿用 base（可再按环境覆盖）
+logging:
+  level:
+    root: INFO
+    com.qingyan.hazmat: INFO
+
+app:
+  # 生产环境务必显式设置 APP_TOKEN_SECRET；此处仅提示，不写默认口令
+  security:
+    rate-limit:
+      # 生产按"真人使用 + 少量脚本"估算：登录 60/min/IP（防爆破主防线见 login-attempt）
+      login-per-minute: 60
+      write-per-minute: 200

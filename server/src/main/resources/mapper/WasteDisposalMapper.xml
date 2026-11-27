@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.WasteDisposalMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO waste_disposal(code, chemical_id, batch_id, type, qty, method, operator_id, status)
+        VALUES(#{code}, #{chemicalId}, #{batchId}, #{type}, #{qty}, #{method}, #{operatorId}, #{status})
+    </insert>
+
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.WasteDisposal">
+        SELECT * FROM waste_disposal WHERE id = #{id}
+    </select>
+
+    <!-- 处置单详情（H2 打印闭环数据源）：联表带化学品（编码/CAS/分类/规格/单位）、批次号、
+         经办人/审批人姓名——打印页与详情页渲染所需；无此单返回 null（控制器 4101）。 -->
+    <select id="selectDetailById" resultType="com.qingyan.hazmat.hazmat.entity.WasteDisposal">
+        SELECT w.*,
+               ci.name AS chemical_name, ci.code AS chemicalCode, ci.cas_no AS casNo,
+               ci.category AS category, ci.spec AS spec, ci.unit AS unit,
+               cb.lot_no AS lotNo,
+               uo.nickname AS operator_name,
+               ua.nickname AS approver_name
+        FROM waste_disposal w
+        LEFT JOIN chem_info ci ON w.chemical_id = ci.id
+        LEFT JOIN chem_batch cb ON w.batch_id = cb.id
+        LEFT JOIN sys_user uo ON w.operator_id = uo.id
+        LEFT JOIN sys_user ua ON w.approver_id = ua.id
+        WHERE w.id = #{id}
+    </select>
+
+    <select id="countToday" resultType="int">
+        SELECT COUNT(*) FROM waste_disposal WHERE code LIKE CONCAT(#{dayPrefix}, '%')
+    </select>
+
+    <update id="approve">
+        UPDATE waste_disposal
+        SET status = 1, approver_id = #{approverId}, finish_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="reject">
+        UPDATE waste_disposal SET status = 2, approver_id = #{approverId}
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <!-- ── 完成登记 / 列表分页 / 待办 / 大屏（控制器层扩展）── -->
+
+    <!-- 审批前置登记：落 disposal_target / voucher_no（完成合规信息；必填校验在控制器） -->
+    <update id="updateCompletion">
+        UPDATE waste_disposal
+        SET disposal_target = #{disposalTarget}, voucher_no = #{voucherNo}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectPage" resultType="com.qingyan.hazmat.hazmat.entity.WasteDisposal">
+        SELECT w.*, ci.name AS chemical_name, uo.nickname AS operator_name
+        FROM waste_disposal w
+        LEFT JOIN chem_info ci ON w.chemical_id = ci.id
+        LEFT JOIN sys_user uo ON w.operator_id = uo.id
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND w.code LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">AND w.status = #{status}</if>
+        ORDER BY w.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM waste_disposal w WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND w.code LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">AND w.status = #{status}</if>
+    </select>
+
+    <!-- 待审处置单（status=0，审批中心聚合；前端按 perms 过滤按钮） -->
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*) FROM waste_disposal WHERE status = 0
+    </select>
+
+    <select id="selectPending" resultType="com.qingyan.hazmat.hazmat.entity.WasteDisposal">
+        SELECT w.*, ci.name AS chemical_name, uo.nickname AS operator_name
+        FROM waste_disposal w
+        LEFT JOIN chem_info ci ON w.chemical_id = ci.id
+        LEFT JOIN sys_user uo ON w.operator_id = uo.id
+        WHERE w.status = 0
+        ORDER BY w.create_time ASC
+        LIMIT 20
+    </select>
+
+    <!-- 大屏处置统计：按处置类型分组（1废液/2空瓶/3过期整批） -->
+    <select id="statsByType" resultType="map">
+        SELECT type AS "type", COUNT(*) AS "cnt", COALESCE(SUM(qty), 0) AS "total_qty"
+        FROM waste_disposal
+        GROUP BY type
+        ORDER BY type
+    </select>
+</mapper>

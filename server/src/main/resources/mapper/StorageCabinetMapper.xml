@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.StorageCabinetMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO storage_cabinet(code, name, type, dual_lock, location)
+        VALUES(#{code}, #{name}, #{type}, #{dualLock}, #{location})
+    </insert>
+    <select id="selectAll" resultType="com.qingyan.hazmat.hazmat.entity.StorageCabinet">
+        SELECT * FROM storage_cabinet ORDER BY code
+    </select>
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.StorageCabinet">
+        SELECT * FROM storage_cabinet WHERE id = #{id}
+    </select>
+    <update id="update">
+        UPDATE storage_cabinet SET name = #{name}, type = #{type}, dual_lock = #{dualLock},
+            location = #{location} WHERE id = #{id}
+    </update>
+</mapper>

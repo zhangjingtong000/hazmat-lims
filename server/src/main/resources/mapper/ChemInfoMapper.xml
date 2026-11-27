@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.ChemInfoMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chem_info(code, name, alias, cas_no, category, compat_group, compat_group2,
+            spec, unit, stock_qty, min_stock, max_once, cabinet_id, expiry_warn_days,
+            ghz_pictogram, first_aid, status)
+        VALUES(#{code}, #{name}, #{alias}, #{casNo}, #{category}, #{compatGroup}, #{compatGroup2},
+            #{spec}, #{unit}, #{stockQty}, #{minStock}, #{maxOnce}, #{cabinetId}, #{expiryWarnDays},
+            #{ghzPictogram}, #{firstAid}, #{status})
+    </insert>
+
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.ChemInfo">
+        SELECT * FROM chem_info WHERE id = #{id}
+    </select>
+
+    <select id="selectByCas" resultType="com.qingyan.hazmat.hazmat.entity.ChemInfo">
+        SELECT * FROM chem_info WHERE cas_no = #{casNo} AND deleted = 0 LIMIT 1
+    </select>
+
+    <update id="update">
+        UPDATE chem_info
+        SET name = #{name}, alias = #{alias}, spec = #{spec}, unit = #{unit},
+            min_stock = #{minStock}, max_once = #{maxOnce}, cabinet_id = #{cabinetId},
+            expiry_warn_days = #{expiryWarnDays}, ghz_pictogram = #{ghzPictogram},
+            first_aid = #{firstAid}, compat_group = #{compatGroup}, compat_group2 = #{compatGroup2},
+            status = #{status}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="markDeleted">
+        UPDATE chem_info SET deleted = 1, update_time = CURRENT_TIMESTAMP WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE chem_info SET status = #{status}, update_time = CURRENT_TIMESTAMP WHERE id = #{id}
+    </update>
+
+    <update id="changeStock">
+        UPDATE chem_info SET stock_qty = stock_qty + #{delta}
+        WHERE id = #{id}
+        <if test="delta.doubleValue() &lt; 0">AND stock_qty + #{delta} &gt;= 0</if>
+    </update>
+
+    <!-- ── 批次 ── -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chem_batch(chemical_id, stock_in_id, lot_no, qty_in, qty_left, expiry_date,
+            cabinet_id, status)
+        VALUES(#{chemicalId}, #{stockInId}, #{lotNo}, #{qtyIn}, #{qtyLeft}, #{expiryDate},
+            #{cabinetId}, #{status})
+    </insert>
+
+    <select id="selectBatch" resultType="com.qingyan.hazmat.hazmat.entity.ChemBatch">
+        SELECT * FROM chem_batch WHERE id = #{id}
+    </select>
+
+    <select id="selectFefoBatches" resultType="com.qingyan.hazmat.hazmat.entity.ChemBatch">
+        SELECT * FROM chem_batch
+        WHERE chemical_id = #{chemicalId} AND status = 0 AND qty_left &gt; 0
+        ORDER BY expiry_date ASC, lot_no ASC
+    </select>
+
+    <update id="deductBatch">
+        UPDATE chem_batch SET qty_left = qty_left - #{qty}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 0 AND qty_left &gt;= #{qty}
+    </update>
+
+    <update id="addBatch">
+        UPDATE chem_batch SET qty_left = qty_left + #{qty}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="updateBatchStatus">
+        UPDATE chem_batch SET status = #{to}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = #{from}
+    </update>
+
+    <update id="moveBatch">
+        UPDATE chem_batch SET cabinet_id = #{cabinetId}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND cabinet_id = #{fromCabinetId} AND status = 0
+    </update>
+
+    <!-- R3 禁配数据源：按批次实际柜位 JOIN（台账默认柜位不参与判定） -->
+    <select id="selectCabinetMates" resultType="com.qingyan.hazmat.hazmat.entity.ChemInfo">
+        SELECT DISTINCT ci.*
+        FROM chem_batch b
+        JOIN chem_info ci ON b.chemical_id = ci.id
+        WHERE b.cabinet_id = #{cabinetId} AND b.status = 0 AND ci.status = 0 AND ci.deleted = 0
+    </select>
+
+    <select id="sumBatchLeft" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(qty_left), 0) FROM chem_batch
+        WHERE chemical_id = #{chemicalId} AND status = 0
+    </select>
+
+    <update id="wipeBatch">
+        UPDATE chem_batch SET qty_left = 0, status = 2, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 3
+    </update>
+
+    <select id="countByCodePrefix" resultType="int">
+        SELECT COUNT(*) FROM chem_info WHERE code LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <select id="countActiveBatches" resultType="int">
+        SELECT COUNT(*) FROM chem_batch WHERE chemical_id = #{chemicalId} AND status = 0
+    </select>
+
+    <!-- ── 列表分页 / 看板大屏聚合（控制器层扩展）── -->
+
+    <select id="selectPage" resultType="com.qingyan.hazmat.hazmat.entity.ChemInfo">
+        SELECT * FROM chem_info
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (code LIKE CONCAT('%', #{keyword}, '%')
+              OR name LIKE CONCAT('%', #{keyword}, '%')
+              OR cas_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="category != null">AND category = #{category}</if>
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM chem_info
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (code LIKE CONCAT('%', #{keyword}, '%')
+              OR name LIKE CONCAT('%', #{keyword}, '%')
+              OR cas_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="category != null">AND category = #{category}</if>
+        <if test="status != null">AND status = #{status}</if>
+    </select>
+
+    <select id="selectBatchPage" resultType="com.qingyan.hazmat.hazmat.entity.ChemBatch">
+        SELECT b.*, ci.name AS chemical_name, cab.name AS cabinet_name
+        FROM chem_batch b
+        LEFT JOIN chem_info ci ON b.chemical_id = ci.id
+        LEFT JOIN storage_cabinet cab ON b.cabinet_id = cab.id
+        <where>
+            <if test="chemicalId != null">b.chemical_id = #{chemicalId}</if>
+        </where>
+        ORDER BY b.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countBatchPage" resultType="long">
+        SELECT COUNT(*) FROM chem_batch
+        <where>
+            <if test="chemicalId != null">chemical_id = #{chemicalId}</if>
+        </where>
+    </select>
+
+    <!-- 效期预警：在库批次 expiry_date ≤ CURRENT_DATE + 台账各自预警天数（含已过期；COALESCE 兜底 30 天） -->
+    <select id="countExpiryWarn" resultType="long">
+        SELECT COUNT(*)
+        FROM chem_batch b
+        JOIN chem_info ci ON b.chemical_id = ci.id
+        WHERE b.status = 0 AND b.qty_left &gt; 0 AND b.expiry_date IS NOT NULL
+          AND ci.deleted = 0
+          AND DATEDIFF('DAY', CURRENT_DATE, b.expiry_date)
+              &lt;= COALESCE(ci.expiry_warn_days, 30)
+    </select>
+
+    <!-- 低库存预警：未删除且设了安全下限的台账，现存 &lt; min_stock -->
+    <select id="countLowStock" resultType="long">
+        SELECT COUNT(*) FROM chem_info
+        WHERE deleted = 0 AND min_stock &gt; 0 AND stock_qty &lt; min_stock
+    </select>
+
+    <!-- ledger/大屏分类分布：按分类分组（台账数 + Σ现存） -->
+    <select id="ledgerByCategory" resultType="map">
+        SELECT category AS "category", COUNT(*) AS "chem_count", COALESCE(SUM(stock_qty), 0) AS "total_stock",
+               GROUP_CONCAT(name ORDER BY id SEPARATOR '、') AS "chem_names"
+        FROM chem_info
+        WHERE deleted = 0
+        GROUP BY category
+        ORDER BY category
+    </select>
+
+    <!-- 大屏批次状态分布：0在库/1耗尽/2废弃/3过期封存 -->
+    <select id="batchStatusDist" resultType="map">
+        SELECT status AS "status", COUNT(*) AS "cnt"
+        FROM chem_batch
+        GROUP BY status
+        ORDER BY status
+    </select>
+</mapper>

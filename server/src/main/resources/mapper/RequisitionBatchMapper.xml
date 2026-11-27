@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.RequisitionBatchMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO requisition_batch(req_id, batch_id, qty, seq_no)
+        VALUES(#{reqId}, #{batchId}, #{qty}, #{seqNo})
+    </insert>
+
+    <select id="selectByReq" resultType="com.qingyan.hazmat.hazmat.entity.RequisitionBatch">
+        SELECT * FROM requisition_batch WHERE req_id = #{reqId} ORDER BY seq_no ASC
+    </select>
+
+    <select id="selectRow" resultType="com.qingyan.hazmat.hazmat.entity.RequisitionBatch">
+        SELECT * FROM requisition_batch WHERE req_id = #{reqId} AND batch_id = #{batchId}
+    </select>
+
+    <select id="countByReq" resultType="int">
+        SELECT COUNT(*) FROM requisition_batch WHERE req_id = #{reqId}
+    </select>
+
+    <!-- 改派幂等守卫（⑦-4）：WHERE 锁 req_id+原批，affected=0 即已被并发改派 -->
+    <update id="reassign">
+        UPDATE requisition_batch SET batch_id = #{newBatchId}, qty = qty
+        WHERE req_id = #{reqId} AND batch_id = #{originalBatchId}
+    </update>
+</mapper>

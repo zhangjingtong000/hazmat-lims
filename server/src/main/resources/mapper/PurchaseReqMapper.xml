@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.PurchaseReqMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_req(code, applicant_id, advisor_id, chemical_name, cas_no, category,
+            spec, unit, qty, purpose, experiment, status, current_seq)
+        VALUES(#{code}, #{applicantId}, #{advisorId}, #{chemicalName}, #{casNo}, #{category},
+            #{spec}, #{unit}, #{qty}, #{purpose}, #{experiment}, #{status}, #{currentSeq})
+    </insert>
+
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.PurchaseReq">
+        SELECT * FROM purchase_req WHERE id = #{id}
+    </select>
+
+    <select id="countToday" resultType="int">
+        SELECT COUNT(*) FROM purchase_req WHERE code LIKE CONCAT(#{dayPrefix}, '%')
+    </select>
+
+    <update id="markSubmitted">
+        UPDATE purchase_req SET status = 1, current_seq = #{currentSeq}
+        WHERE id = #{id} AND status = 0 AND applicant_id = #{applicantId}
+    </update>
+
+    <update id="advance">
+        UPDATE purchase_req
+        SET current_seq = #{toSeq},
+            status = CASE WHEN #{toSeq} = 0 THEN 2 ELSE 1 END,
+            audit_time = CASE WHEN #{toSeq} = 0 THEN CURRENT_TIMESTAMP ELSE audit_time END
+        WHERE id = #{id} AND status = 1 AND current_seq = #{fromSeq}
+    </update>
+
+    <update id="reject">
+        UPDATE purchase_req SET status = 3
+        WHERE id = #{id} AND status = 1 AND current_seq = #{currentSeq}
+    </update>
+
+    <update id="voidReq">
+        UPDATE purchase_req SET status = 5
+        WHERE id = #{id} AND status IN (0, 2) AND in_qty = #{inQty} AND applicant_id = #{applicantId}
+    </update>
+
+    <update id="incrInQty">
+        UPDATE purchase_req SET in_qty = in_qty + #{qty}
+        WHERE id = #{id} AND in_qty + #{qty} &lt;= qty
+    </update>
+
+    <select id="countPerm" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_user_role ur
+        JOIN sys_role_menu rm ON ur.role_id = rm.role_id
+        JOIN sys_menu m ON rm.menu_id = m.id
+        WHERE ur.user_id = #{userId} AND m.perms = #{perm}
+    </select>
+
+    <!-- ── 列表分页 / 待办 / 看板（控制器层扩展）── -->
+
+    <sql id="pageWhere">
+        <if test="keyword != null and keyword != ''">
+            AND (p.code LIKE CONCAT('%', #{keyword}, '%')
+              OR p.chemical_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="applicantId != null">AND p.applicant_id = #{applicantId}</if>
+        <if test="status != null">AND p.status = #{status}</if>
+    </sql>
+
+    <select id="selectPage" resultType="com.qingyan.hazmat.hazmat.entity.PurchaseReq">
+        SELECT p.*, ua.nickname AS applicant_name, ud.nickname AS advisor_name
+        FROM purchase_req p
+        LEFT JOIN sys_user ua ON p.applicant_id = ua.id
+        LEFT JOIN sys_user ud ON p.advisor_id = ud.id
+        WHERE 1 = 1
+        <include refid="pageWhere"/>
+        ORDER BY p.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM purchase_req p WHERE 1 = 1
+        <include refid="pageWhere"/>
+    </select>
+
+    <!-- 待审申购（status=1，审批中心聚合；前端按 perms 过滤按钮） -->
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*) FROM purchase_req WHERE status = 1
+    </select>
+
+    <select id="selectPending" resultType="com.qingyan.hazmat.hazmat.entity.PurchaseReq">
+        SELECT p.*, ua.nickname AS applicant_name, ud.nickname AS advisor_name
+        FROM purchase_req p
+        LEFT JOIN sys_user ua ON p.applicant_id = ua.id
+        LEFT JOIN sys_user ud ON p.advisor_id = ud.id
+        WHERE p.status = 1
+        ORDER BY p.create_time ASC
+        LIMIT 20
+    </select>
+
+    <!-- 看板第四类预警：已批超 days 天未入库（status=2；作废 5 天然排除） -->
+    <select id="countApprovedOverdue" resultType="long">
+        SELECT COUNT(*) FROM purchase_req
+        WHERE status = 2 AND audit_time IS NOT NULL
+          AND DATEDIFF('DAY', audit_time, CURRENT_TIMESTAMP) &gt; #{days}
+    </select>
+</mapper>

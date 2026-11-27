@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.ApprovalRecordMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO approval_record(biz_type, biz_id, seq, node_key, node_name, approver_id, comment, result)
+        VALUES(#{bizType}, #{bizId}, #{seq}, #{nodeKey}, #{nodeName}, #{approverId}, #{comment}, #{result})
+    </insert>
+
+    <select id="selectByBiz" resultType="com.qingyan.hazmat.hazmat.entity.ApprovalRecord">
+        SELECT * FROM approval_record
+        WHERE biz_type = #{bizType} AND biz_id = #{bizId}
+        ORDER BY seq
+    </select>
+
+    <select id="selectBySeq" resultType="com.qingyan.hazmat.hazmat.entity.ApprovalRecord">
+        SELECT * FROM approval_record
+        WHERE biz_type = #{bizType} AND biz_id = #{bizId} AND seq = #{seq}
+    </select>
+
+    <!-- ── 我的已办聚合（G4 审批人视角，审批中心第五页签数据源）──
+         biz_type 口径（schema.sql）：1申购 / 2废弃 —— approval_record approver 视角查询；
+         领用双签不走 approval_record（advisor_id/checker_id 落在 requisition 主单），以 UNION 并入：
+         导师签=advisor_time 非空、复核签=status IN(2,4) 已出库/关闭（驳回态未留签批人，系统既有口径）。
+         统一返回列：bizType(1申购/2废弃/3领用)/bizId/bizLabel/code/chemName/result/comment/nodeName/createTime。 -->
+    <select id="selectDone" resultType="map">
+        SELECT * FROM (
+            SELECT ar.biz_type AS "bizType", ar.biz_id AS "bizId",
+                   CASE ar.biz_type WHEN 1 THEN '申购审批' ELSE '废弃审批' END AS "bizLabel",
+                   COALESCE(p.code, w.code) AS "code",
+                   COALESCE(p.chemical_name, ci.name) AS "chemName",
+                   ar.result AS "result", ar.comment AS "comment",
+                   ar.node_name AS "nodeName", ar.create_time AS "createTime"
+            FROM approval_record ar
+            LEFT JOIN purchase_req p ON ar.biz_type = 1 AND ar.biz_id = p.id
+            LEFT JOIN waste_disposal w ON ar.biz_type = 2 AND ar.biz_id = w.id
+            LEFT JOIN chem_info ci ON ar.biz_type = 2 AND w.chemical_id = ci.id
+            WHERE ar.approver_id = #{approverId}
+            UNION ALL
+            SELECT 3 AS "bizType", r.id AS "bizId", '领用双签' AS "bizLabel",
+                   r.code AS "code", ci.name AS "chemName",
+                   1 AS "result", '' AS "comment",
+                   '导师签' AS "nodeName", r.advisor_time AS "createTime"
+            FROM requisition r
+            JOIN chem_info ci ON r.chemical_id = ci.id
+            WHERE r.advisor_id = #{approverId} AND r.advisor_time IS NOT NULL
+            UNION ALL
+            SELECT 3 AS "bizType", r.id AS "bizId", '领用双签' AS "bizLabel",
+                   r.code AS "code", ci.name AS "chemName",
+                   1 AS "result", '' AS "comment",
+                   '复核双签' AS "nodeName", COALESCE(r.out_time, r.create_time) AS "createTime"
+            FROM requisition r
+            JOIN chem_info ci ON r.chemical_id = ci.id
+            WHERE r.checker_id = #{approverId} AND r.status IN (2, 4)
+        ) t
+        ORDER BY "createTime" DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

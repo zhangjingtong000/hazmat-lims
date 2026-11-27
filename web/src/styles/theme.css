@@ -1,0 +1,269 @@
+/* ═══════════════════════════════════════════════════════
+   高校实验室危险化学品全流程管理系统 — GHS 安全警示设计语言 v2
+   设计基准：SDS 安全数据单的工业精确感
+   · 细线分区（hairline rule）代替阴影堆叠
+   · 语义色只表达含义（GHS 分类/状态），不用于装饰
+   · 数字一律 tabular-nums 等宽对齐
+   · 一个页面一个主色焦点，其余退后
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 主色：安全橙 ── */
+  --c-safe: #D97706;
+  --c-safe-deep: #B45309;
+  --c-safe-bg: #FFF8ED;        /* 极浅橙底纹 */
+  --c-safe-line: #F1D9B8;
+
+  /* ── 中性色：石墨系 ── */
+  --c-graphite-deep: #1C2430;  /* 标题 */
+  --c-graphite: #3D4756;       /* 正文 */
+  --c-graphite-soft: #7A8494;  /* 次级 */
+  --c-graphite-faint: #A5ADBB; /* 弱化 */
+  --c-line: #E4E7EC;           /* 常规线 */
+  --c-line-strong: #D2D7DF;    /* 强调线 */
+  --c-line-faint: #EEF0F3;     /* 弱分隔 */
+  --c-page: #F6F7F4;           /* 页面底（带一丝暖灰） */
+
+  /* ── 功能色 ── */
+  --c-ok: #16A34A;
+  --c-ok-bg: #F0FDF4;
+  --c-danger: #B91C1C;
+  --c-danger-bg: #FEF2F2;
+
+  /* ── GHS 分类警示色（图表/标签统一取此，五种色相拉开） ── */
+  --c-jd: #B91C1C;             /* 剧毒 · 红 */
+  --c-yz: #7C3AED;             /* 易制毒 · 紫 */
+  --c-yb: #EA580C;             /* 易制爆 · 深橙 */
+  --c-wh: #CA8A04;             /* 危化品 · 琥珀 */
+  --c-pt: #15803D;             /* 普通 · 绿 */
+
+  /* ── 字体 ── */
+  --f-display: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --f-body: -apple-system, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --f-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+
+  /* ── 几何：小圆角 + 无阴影（靠边线分区） ── */
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 8px;
+  --shadow-1: none;
+  --shadow-2: 0 2px 10px rgba(28, 36, 48, 0.07);   /* 仅浮层/下拉 */
+  --shadow-pop: 0 6px 24px rgba(28, 36, 48, 0.12); /* 弹窗 */
+
+  /* ── Element Plus 主色对齐 ── */
+  --el-color-primary: #D97706;
+  --el-color-primary-light-3: #E29433;
+  --el-color-primary-light-5: #EAB24F;
+  --el-color-primary-light-7: #F2D08F;
+  --el-color-primary-light-8: #F7DFAF;
+  --el-color-primary-light-9: #FDF4E3;
+  --el-color-primary-dark-2: #B45309;
+  --el-color-success: #16A34A;
+  --el-color-danger: #B91C1C;
+  --el-color-error: #B91C1C;
+  --el-border-radius-base: 4px;
+  --el-bg-color-page: var(--c-page);
+  --el-text-color-primary: var(--c-graphite-deep);
+  --el-text-color-regular: var(--c-graphite);
+  --el-border-color: var(--c-line);
+  --el-border-color-light: var(--c-line-faint);
+  --el-border-color-lighter: var(--c-line-faint);
+  --el-fill-color-light: #F6F7F4;
+  --el-font-family: var(--f-body);
+}
+
+html { font-size: 14px; }
+body {
+  font-family: var(--f-body);
+  color: var(--c-graphite);
+  background: var(--c-page);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D5D9DF; border-radius: 4px; border: 2px solid var(--c-page); }
+::-webkit-scrollbar-thumb:hover { background: var(--c-graphite-faint); }
+
+/* ═══════════ 全局 Element Plus 精修 ═══════════ */
+
+/* toast：右上角浮出，不遮内容 */
+.el-message {
+  top: 68px !important;
+  left: auto !important;
+  right: 24px !important;
+  transform: none !important;
+  --el-message-border-color: var(--c-line);
+  box-shadow: var(--shadow-2);
+}
+
+/* 表格：SDS 台账风——去竖线、表头浅底、行悬停暖底、密度紧凑 */
+.el-table .cell { white-space: nowrap; }
+.el-table .el-button.is-text { padding: 5px 4px; }
+.el-table .el-button + .el-button { margin-left: 4px; }
+.el-table {
+  --el-table-border-color: var(--c-line-faint);
+  --el-table-header-bg-color: #FAFAF8;
+  --el-table-header-text-color: var(--c-graphite-soft);
+  --el-table-row-hover-bg-color: #FBF7EF;
+  --el-table-tr-bg-color: #fff;
+}
+/* 斑马纹：中性暖灰，与 hover 暖橙底拉开层次 */
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: #FAF9F6;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped.current-row td.el-table__cell,
+.el-table--striped .el-table__body tr.el-table__row--striped:hover td.el-table__cell {
+  background: #FBF7EF;
+}
+.el-table th.el-table__cell {
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+.el-table .el-table__cell { padding: 8px 0; }
+.el-table .cell { padding: 0 12px; }
+
+/* 分页右对齐呼吸感 */
+.el-pagination { --el-pagination-button-bg-color: transparent; }
+
+/* 卡片容器（页面卡片统一体） */
+.page-card {
+  background: #fff;
+  border: 1px solid var(--c-line);
+  border-radius: var(--r-lg);
+}
+
+/* 对话框/下拉/弹层 */
+.el-dialog { border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
+.el-popper.is-light { box-shadow: var(--shadow-2); border-color: var(--c-line); }
+.el-dropdown-menu { box-shadow: var(--shadow-2); }
+
+/* 按钮：统一高度节奏，主按钮沉稳 */
+.el-button--primary { --el-button-hover-bg-color: var(--c-safe-deep); }
+.el-button + .el-button { margin-left: 8px; }
+
+/* tabs：下划线式，去背景块 */
+.el-tabs__item { font-weight: 600; color: var(--c-graphite-soft); }
+.el-tabs__item.is-active { color: var(--c-safe-deep); }
+.el-tabs__active-bar { background: var(--c-safe); height: 2px; }
+.el-tabs__nav-wrap::after { height: 1px; background: var(--c-line-faint); }
+
+/* tag 统一细边框平铺风 */
+.el-tag { border-radius: var(--r-sm); font-weight: 600; }
+
+/* 描述列表/表单 label 弱化 */
+.el-form-item__label { color: var(--c-graphite-soft); font-weight: 500; }
+
+/* 列表页双卡节奏：筛选卡/表格卡内边距全局统一（高特异性压过页面残留局部样式） */
+.layout-main .page-card.filter-card { padding: 12px 16px; margin-bottom: 12px; }
+.layout-main .page-card.table-card { padding: 4px 16px 14px; }
+.layout-main .page-card .pager { margin-top: 12px; justify-content: flex-end; }
+
+/* 空态紧凑 */
+.el-empty__description p { color: var(--c-graphite-faint); font-size: 0.8rem; }
+
+/* ═══════════ GHS 页面原子件 ═══════════ */
+
+/* 眉题：小型字距标签（SDS 节标题语言） */
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--c-safe-deep);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* 页题 */
+.page-title {
+  font-family: var(--f-display);
+  font-weight: 700;
+  color: var(--c-graphite-deep);
+  font-size: 1.2rem;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+/* 卡片头：标题 + 动作区（全局统一节奏） */
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--c-line-faint);
+}
+.card-head .page-title { font-size: 0.95rem; }
+.card-sub { font-size: 0.76rem; color: var(--c-graphite-faint); margin-top: 2px; }
+
+/* 单据编号：等宽 */
+.doc-code {
+  font-family: var(--f-mono);
+  color: var(--c-safe-deep);
+  font-weight: 600;
+  font-size: 0.85em;
+  letter-spacing: 0.01em;
+}
+
+/* 数字：等宽强调 */
+.metric-num {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--c-graphite-deep);
+}
+
+/* 警示横条：退后成一行小注，不再抢戏 */
+.regimen-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 12px;
+  background: transparent;
+  border-left: 3px solid var(--c-safe);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  color: var(--c-graphite-soft);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+.regimen-bar .el-icon { align-self: center; color: var(--c-safe); font-size: 0.9rem; }
+
+/* 页面级布局容器：统一页头节奏 */
+.page-wrap { display: flex; flex-direction: column; gap: 12px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.page-header .regimen-bar { border-left: none; padding: 0 0 0 10px; }
+
+/* 分类徽章文字色 */
+.cat-jd { color: var(--c-jd); }
+.cat-yz { color: var(--c-yz); }
+.cat-yb { color: var(--c-yb); }
+.cat-wh { color: var(--c-wh); }
+.cat-pt { color: var(--c-pt); }
+
+/* 顶栏分组下拉菜单项 */
+.nav-group-menu .el-dropdown-menu__item {
+  font-size: 0.9rem;
+  padding: 8px 18px;
+}
+
+/* 打印视图通用 */
+.print-sheet {
+  background: #fff;
+  color: #111;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 40px;
+}
+.print-sheet table { width: 100%; border-collapse: collapse; }
+.print-sheet th, .print-sheet td {
+  border: 1px solid #444;
+  padding: 6px 8px;
+  font-size: 0.82rem;
+  text-align: center;
+}
+@media print {
+  body * { visibility: hidden; }
+  .print-sheet, .print-sheet * { visibility: visible; }
+  .print-sheet { position: absolute; left: 0; top: 0; width: 100%; }
+}

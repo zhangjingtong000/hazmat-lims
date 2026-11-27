@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.StockReturnMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stock_return(code, req_id, batch_id, qty, applicant_id, status, return_time)
+        VALUES(#{code}, #{reqId}, #{batchId}, #{qty}, #{applicantId}, #{status}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.StockReturn">
+        SELECT * FROM stock_return WHERE id = #{id}
+    </select>
+
+    <select id="countToday" resultType="int">
+        SELECT COUNT(*) FROM stock_return WHERE code LIKE CONCAT(#{dayPrefix}, '%')
+    </select>
+
+    <select id="selectByReq" resultType="com.qingyan.hazmat.hazmat.entity.StockReturn">
+        SELECT sr.*, ua.nickname AS applicant_name, uc.nickname AS confirmer_name
+        FROM stock_return sr
+        LEFT JOIN sys_user ua ON sr.applicant_id = ua.id
+        LEFT JOIN sys_user uc ON sr.confirmer_id = uc.id
+        WHERE sr.req_id = #{reqId}
+        ORDER BY sr.id ASC
+    </select>
+
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*) FROM stock_return WHERE status = 0
+    </select>
+
+    <select id="selectPending" resultType="com.qingyan.hazmat.hazmat.entity.StockReturn">
+        SELECT sr.*, ci.name AS chemical_name, ua.nickname AS applicant_name
+        FROM stock_return sr
+        LEFT JOIN chem_batch cb ON sr.batch_id = cb.id
+        LEFT JOIN chem_info ci ON cb.chemical_id = ci.id
+        LEFT JOIN sys_user ua ON sr.applicant_id = ua.id
+        WHERE sr.status = 0
+        ORDER BY sr.create_time ASC
+        LIMIT 20
+    </select>
+
+    <update id="confirm">
+        UPDATE stock_return
+        SET status = 1, confirmer_id = #{confirmerId}, confirm_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="reject">
+        UPDATE stock_return SET status = 2, comment = #{comment}
+        WHERE id = #{id} AND status = 0
+    </update>
+</mapper>

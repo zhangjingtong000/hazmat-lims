@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.3</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.qingyan.hazmat</groupId>
+  <artifactId>hazmat-management</artifactId>
+  <version>1.0.0</version>
+  <name>hazmat-management</name>
+  <description>高校实验室危险化学品全流程管理：申购审批/入库储存/领用/处置，内嵌 H2，单 jar 运行</description>
+
+  <properties>
+    <java.version>17</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <mybatis-spring-boot.version>4.0.1</mybatis-spring-boot.version>
+  </properties>
+
+  <dependencies>
+    <!--
+      版本化 schema 迁移（B8/H5）说明：本项目采用**自研轻量迁移**而非 flyway/liquibase 依赖——
+      脚本沿用 Flyway 的 V{n}__{描述}.sql 命名约定放在 classpath:db/migration/，
+      由 com.qingyan.hazmat.db.SchemaMigrationRunner 在启动时按文件名序执行未应用脚本，
+      schema_version 表登记 version/script/checksum（幂等、失败即阻断启动）。
+      首启基线由 db/schema.sql（spring.sql.init）承担。理由是不引入额外第三方依赖，
+      且迁移逻辑（30 行）可审计；如需回归 flyway，删掉运行器并加依赖即可，脚本无需改写。
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
+      <version>1.9.22</version>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mybatis.spring.boot</groupId>
+      <artifactId>mybatis-spring-boot-starter</artifactId>
+      <version>${mybatis-spring-boot.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

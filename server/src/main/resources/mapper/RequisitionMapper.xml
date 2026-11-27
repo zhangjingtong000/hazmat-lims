@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.RequisitionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO requisition(code, chemical_id, qty, purpose, experiment, applicant_id,
+            req_id, expect_return, status)
+        VALUES(#{code}, #{chemicalId}, #{qty}, #{purpose}, #{experiment}, #{applicantId},
+            #{reqId}, #{expectReturn}, #{status})
+    </insert>
+
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.Requisition">
+        SELECT * FROM requisition WHERE id = #{id}
+    </select>
+
+    <select id="countToday" resultType="int">
+        SELECT COUNT(*) FROM requisition WHERE code LIKE CONCAT(#{dayPrefix}, '%')
+    </select>
+
+    <!-- 关联申购超领对账（C3）：已出库 2 + 已归还/核销关闭 4 的领用均占用申购量 -->
+    <select id="sumQtyByReq" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(qty), 0) FROM requisition
+        WHERE req_id = #{reqId} AND status IN (2, 4)
+    </select>
+
+    <update id="approveAdvisor">
+        UPDATE requisition
+        SET status = 1, advisor_id = #{advisorId}, advisor_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="reject">
+        UPDATE requisition SET status = 3
+        WHERE id = #{id} AND status = #{fromStatus}
+    </update>
+
+    <update id="markOut">
+        UPDATE requisition
+        SET status = 2, checker_id = #{checkerId}, out_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!-- 计数器条件更新（N-2/4602）：affected=0 即累计归还超领用量（或单据已不在出库态） -->
+    <update id="incrReturnQty">
+        UPDATE requisition SET return_qty = return_qty + #{qty}
+        WHERE id = #{id} AND status = 2 AND return_qty + #{qty} &lt;= qty
+    </update>
+
+    <!-- Σ归还 ≥ 领用量 → 自动归还完毕关闭（4 亦含核销关闭） -->
+    <update id="complete">
+        UPDATE requisition SET status = 4
+        WHERE id = #{id} AND status = 2 AND return_qty &gt;= qty
+    </update>
+
+    <!-- 核销（⑦-2）：仅已出库 2 且申请人本人，comment 校验在服务层 -->
+    <update id="close">
+        UPDATE requisition SET status = 4
+        WHERE id = #{id} AND status = 2 AND applicant_id = #{applicantId}
+    </update>
+
+    <!-- ── 列表分页 / 待办（控制器层扩展）── -->
+
+    <sql id="pageWhere">
+        <if test="applicantId != null">AND r.applicant_id = #{applicantId}</if>
+        <if test="status != null">AND r.status = #{status}</if>
+        <if test="todo">AND r.status IN (0, 1)</if>
+    </sql>
+
+    <select id="selectPage" resultType="com.qingyan.hazmat.hazmat.entity.Requisition">
+        SELECT r.*, ci.name AS chemical_name, ua.nickname AS applicant_name
+        FROM requisition r
+        LEFT JOIN chem_info ci ON r.chemical_id = ci.id
+        LEFT JOIN sys_user ua ON r.applicant_id = ua.id
+        WHERE 1 = 1
+        <include refid="pageWhere"/>
+        ORDER BY r.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM requisition r WHERE 1 = 1
+        <include refid="pageWhere"/>
+    </select>
+
+    <!-- 待复核领用（待导师 0 / 待复核 1，审批中心聚合；前端按 perms 过滤按钮） -->
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*) FROM requisition WHERE status IN (0, 1)
+    </select>
+
+    <select id="selectPending" resultType="com.qingyan.hazmat.hazmat.entity.Requisition">
+        SELECT r.*, ci.name AS chemical_name, ua.nickname AS applicant_name
+        FROM requisition r
+        LEFT JOIN chem_info ci ON r.chemical_id = ci.id
+        LEFT JOIN sys_user ua ON r.applicant_id = ua.id
+        WHERE r.status IN (0, 1)
+        ORDER BY r.create_time ASC
+        LIMIT 20
+    </select>
+</mapper>

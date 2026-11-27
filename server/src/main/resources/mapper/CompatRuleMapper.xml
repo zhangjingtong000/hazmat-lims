@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.CompatRuleMapper">
+    <insert id="insertPair">
+        INSERT INTO compat_rule(group_a, group_b, note)
+        VALUES(#{groupA}, #{groupB}, #{note})
+    </insert>
+    <select id="selectAll" resultType="com.qingyan.hazmat.hazmat.entity.CompatRule">
+        SELECT * FROM compat_rule ORDER BY group_a
+    </select>
+    <delete id="deletePair">
+        DELETE FROM compat_rule
+        WHERE (group_a = #{groupA} AND group_b = #{groupB})
+           OR (group_a = #{groupB} AND group_b = #{groupA})
+    </delete>
+</mapper>

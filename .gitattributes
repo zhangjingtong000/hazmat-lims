@@ -1,0 +1,10 @@
+# 默认按文本处理并在仓库内统一为 LF；shell 脚本强制 LF，避免在 Linux 上因 CRLF 无法执行
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+*.png   binary
+*.jpg   binary
+*.jar   binary

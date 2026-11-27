@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.system.mapper.DictItemMapper">
+    <sql id="pageCond">
+        <where>
+            <if test="dictType != null and dictType != ''">AND dict_type = #{dictType}</if>
+            <if test="keyword != null and keyword != ''">AND item_name LIKE CONCAT('%', #{keyword}, '%')</if>
+        </where>
+    </sql>
+    <select id="selectByType" resultType="com.qingyan.hazmat.system.entity.DictItem">
+        SELECT * FROM dict_item WHERE dict_type = #{dictType} AND status = 0 ORDER BY order_num
+    </select>
+    <select id="selectPage" resultType="com.qingyan.hazmat.system.entity.DictItem">
+        SELECT * FROM dict_item
+        <include refid="pageCond"/>
+        ORDER BY dict_type, order_num
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM dict_item
+        <include refid="pageCond"/>
+    </select>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dict_item(dict_type, item_name, item_value, status, order_num)
+        VALUES(#{dictType}, #{itemName}, #{itemValue}, #{status}, #{orderNum})
+    </insert>
+    <update id="update">
+        UPDATE dict_item SET dict_type = #{dictType}, item_name = #{itemName},
+            item_value = #{itemValue}, order_num = #{orderNum}
+        WHERE id = #{id}
+    </update>
+    <update id="updateStatus">
+        UPDATE dict_item SET status = #{status} WHERE id = #{id}
+    </update>
+    <delete id="deleteByIds">
+        DELETE FROM dict_item WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,60 @@
+# ── Java / Maven ──
+target/
+build/
+out/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+mvnw
+mvnw.cmd
+*.versionsBackup
+dependency-reduced-pom.xml
+
+# ── 本地数据库（H2 文件库与其变更日志，含真实数据，绝不入库）──
+*.mv.db
+*.trace.db
+*.lock.db
+data/
+
+# ── 日志与运行期产物 ──
+*.log
+logs/
+nohup.out
+*.pid
+
+# ── 前端 ──
+node_modules/
+dist/
+.vite/
+*.local
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── 测试与报告 ──
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+surefire-reports/
+failsafe-reports/
+
+# ── 备份与快照 ──
+backups/
+shots/
+
+# ── IDE / 系统 ──
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ── 密钥与环境变量（口令只走环境变量，不落仓库）──
+.env
+.env.*
+*.pem
+*.key

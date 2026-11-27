@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qingyan.hazmat.hazmat.mapper.ChemCheckMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chem_check(code, scope_category, checker_one_id, checker_two_id, diff_count, result)
+        VALUES(#{code}, #{scopeCategory}, #{checkerOneId}, #{checkerTwoId}, #{diffCount}, #{result})
+    </insert>
+
+    <select id="selectById" resultType="com.qingyan.hazmat.hazmat.entity.ChemCheck">
+        SELECT * FROM chem_check WHERE id = #{id}
+    </select>
+
+    <select id="countToday" resultType="int">
+        SELECT COUNT(*) FROM chem_check WHERE code LIKE CONCAT(#{dayPrefix}, '%')
+    </select>
+
+    <update id="finish">
+        UPDATE chem_check
+        SET diff_count = #{diffCount}, result = #{result}, checked_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND result = 0
+    </update>
+
+    <!-- ── 列表分页（控制器层扩展）── -->
+
+    <select id="selectPage" resultType="com.qingyan.hazmat.hazmat.entity.ChemCheck">
+        SELECT c.*, u1.nickname AS checker_one_name, u2.nickname AS checker_two_name
+        FROM chem_check c
+        LEFT JOIN sys_user u1 ON c.checker_one_id = u1.id
+        LEFT JOIN sys_user u2 ON c.checker_two_id = u2.id
+        WHERE 1 = 1
+        <if test="result != null">AND c.result = #{result}</if>
+        ORDER BY c.id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM chem_check c WHERE 1 = 1
+        <if test="result != null">AND c.result = #{result}</if>
+    </select>
+</mapper>
