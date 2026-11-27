@@ -155,9 +155,12 @@ BASE_URL=http://localhost:8081 npx playwright test
 
 ## 已知限制
 
-- **MySQL 8 分支未实测。** `schema.sql` 的 `CREATE INDEX IF NOT EXISTS` 在 MySQL 8 非法（1064），
-  README 给了 `sed` 转换脚本与 `MYSQL_INIT_MODE=never`，但本轮没有 MySQL 8 实例可连，
-  「MySQL 生产路径」只有静态检查，没有跑通证据。
+- **MySQL 8 分支已实测，但仍属「本机临时实例」级别。** 用临时 MySQL 8.0.45 实例验证过：
+  `schema.sql` 的 `CREATE INDEX IF NOT EXISTS` 触发 `ERROR 1064`；按 README 给的 `sed` 转换
+  脚本处理后（22 张表 / 25 个索引，exit 0），以 `--profiles=mysql` + `MYSQL_INIT_MODE=never`
+  启动到 `/health` UP（db 正常、`ai=degraded(no-key)`），登录接口返回 UTF-8 正常；
+  `MYSQL_INIT_MODE` 保持 `always` 的对照路径同样验证过——启动即失败。未验证的是 DBA 托管的
+  库、主从与生产参数调优。
 - **E2E 不是一条 `npm test` 就能跑。** 它依赖三件环境：① 后端在 8081 提供同源页面与 API；
   ② `web/dist/` 已构建；③ Playwright 浏览器已安装。缺任何一件时，失败信息都容易误读成业务失败
   —— 尤其缺浏览器时报 `Executable doesn't exist at ...chromium_headless_shell-1255`。
