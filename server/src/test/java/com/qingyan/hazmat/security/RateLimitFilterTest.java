@@ -17,7 +17,7 @@ class RateLimitFilterTest {
 
     @Test
     void 只读请求不参与限流() {
-        RateLimitFilter filter = new RateLimitFilter(1, 1);
+        RateLimitFilter filter = new RateLimitFilter(1, 1, resolver());
         MockHttpServletRequest get = new MockHttpServletRequest("GET", "/chem/info/list");
         MockHttpServletRequest post = new MockHttpServletRequest("POST", "/chem/info");
         MockHttpServletRequest put = new MockHttpServletRequest("PUT", "/chem/info");
@@ -30,7 +30,7 @@ class RateLimitFilterTest {
 
     @Test
     void 登录限流按窗口上限拒绝并给出4290() throws Exception {
-        RateLimitFilter filter = new RateLimitFilter(1, 100);
+        RateLimitFilter filter = new RateLimitFilter(1, 100, resolver());
         FilterChain chain = mock(FilterChain.class);
 
         MockHttpServletRequest first = new MockHttpServletRequest("POST", "/auth/login");
@@ -50,7 +50,7 @@ class RateLimitFilterTest {
 
     @Test
     void 登录与写接口窗口独立_不同IP互不影响() throws Exception {
-        RateLimitFilter filter = new RateLimitFilter(1, 1);
+        RateLimitFilter filter = new RateLimitFilter(1, 1, resolver());
         FilterChain chain = mock(FilterChain.class);
 
         MockHttpServletRequest login = new MockHttpServletRequest("POST", "/auth/login");
@@ -80,7 +80,7 @@ class RateLimitFilterTest {
 
     @Test
     void 阈值暴露与清理不抛异常() throws Exception {
-        RateLimitFilter filter = new RateLimitFilter(7, 70);
+        RateLimitFilter filter = new RateLimitFilter(7, 70, resolver());
         assertEquals(7, filter.loginPerMinute());
         assertEquals(70, filter.writePerMinute());
         MockHttpServletRequest post = new MockHttpServletRequest("POST", "/auth/login");
@@ -88,5 +88,10 @@ class RateLimitFilterTest {
         filter.doFilterInternal(post, new MockHttpServletResponse(), mock(FilterChain.class));
         filter.sweep();
         filter.sweep();
+    }
+
+    /** 默认部署口径：不信任任何转发头，限流按 TCP 对端地址计数。 */
+    private static ClientIpResolver resolver() {
+        return new ClientIpResolver(false, "");
     }
 }

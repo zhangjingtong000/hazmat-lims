@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+**/node_modules
+**/target
+**/dist
+server/src/main/resources/static
+data
+server/data
+logs
+e2e/report
+e2e/test-results
+docs/screenshots
+*.log

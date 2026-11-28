@@ -42,12 +42,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final int loginPerMinute;
     private final int writePerMinute;
+    private final ClientIpResolver clientIp;
     private final Map<String, Deque<Instant>> windows = new ConcurrentHashMap<>();
 
     public RateLimitFilter(@Value("${app.security.rate-limit.login-per-minute:120}") int loginPerMinute,
-                           @Value("${app.security.rate-limit.write-per-minute:300}") int writePerMinute) {
+                           @Value("${app.security.rate-limit.write-per-minute:300}") int writePerMinute,
+                           ClientIpResolver clientIp) {
         this.loginPerMinute = loginPerMinute;
         this.writePerMinute = writePerMinute;
+        this.clientIp = clientIp;
     }
 
     @Override
@@ -60,7 +63,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String ip = ClientIp.of(request);
+        String ip = clientIp.resolve(request);
         String uri = request.getRequestURI();
         boolean login = "/auth/login".equals(uri);
         int limit = login ? loginPerMinute : writePerMinute;

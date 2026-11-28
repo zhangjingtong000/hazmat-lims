@@ -44,6 +44,11 @@ app:
     max-tokens: 1024
     timeout-seconds: 30
   security:
+    # 默认只认 TCP 对端地址（getRemoteAddr），不信任任何转发头。
+    # 只有部署在反向代理之后，才把 trust-proxy 设为 true，并把反代地址写入 trusted-proxies
+    # （精确 IP / IPv4 CIDR / 10.0.0.* 通配）。清单为空时即使 trust-proxy=true 也不读 XFF。
+    trust-proxy: false
+    trusted-proxies: ""
     login-attempt:                   # 登录防爆破（内存滑动窗口，单实例）
       max-failures: 5
       window-minutes: 10

@@ -19,6 +19,6 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
                 // /health 为负载均衡/编排探针，不要求登录令牌
-                .excludePathPatterns("/auth/login", "/health", "/error", "/asset/info/code/**");
+                .excludePathPatterns("/auth/login", "/health", "/error");
     }
 }

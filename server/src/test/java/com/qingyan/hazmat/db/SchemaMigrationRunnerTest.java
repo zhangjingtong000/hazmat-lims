@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,5 +51,16 @@ class SchemaMigrationRunnerTest {
         assertEquals(a, b, "同内容校验和必须一致（幂等判定的基础）");
         assertNotEquals(a, c, "内容变化校验和必须变化");
         assertEquals(64, a.length(), "SHA-256 十六进制长度应为 64");
+    }
+
+    @Test
+    void 仅V1注释修正前的历史校验和允许一次性升级() {
+        String oldV1 = "d33271cad45b4f6bf2f009cbea6c0d68f7a3ccc3230f0670685d907c2f413347";
+        assertTrue(SchemaMigrationRunner.isLegacyChecksum("V1__baseline.sql", oldV1));
+        assertTrue(SchemaMigrationRunner.isLegacyChecksum("V1__baseline.sql", oldV1.toUpperCase()));
+        assertFalse(SchemaMigrationRunner.isLegacyChecksum("V2__notify_message.sql", oldV1),
+                "历史豁免只针对 V1，不能扩散到其他脚本");
+        assertFalse(SchemaMigrationRunner.isLegacyChecksum("V1__baseline.sql", "deadbeef"));
+        assertFalse(SchemaMigrationRunner.isLegacyChecksum("V1__baseline.sql", null));
     }
 }

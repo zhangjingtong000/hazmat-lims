@@ -27,6 +27,8 @@ nohup.out
 node_modules/
 dist/
 .vite/
+# 前端构建产物拷入后端静态目录后不随仓库提交（构建/启动脚本负责生成）
+server/src/main/resources/static/
 *.local
 npm-debug.log*
 yarn-error.log*

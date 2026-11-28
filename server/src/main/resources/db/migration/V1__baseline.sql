@@ -1,6 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- V1 基线（baseline）：与 db/schema.sql 同源。
--- 首启由 spring.sql.init 执行 schema.sql 建齐 21 张业务表（全部 CREATE TABLE IF NOT EXISTS），
+-- 首启由 spring.sql.init 执行 schema.sql 建齐 22 张业务表（全部 CREATE TABLE IF NOT EXISTS），
+-- V2 追加 notify_message（第 23 张业务表）；schema_version 另计，全库共 24 张表。
 -- 本脚本作为**版本链起点**：不含业务 DDL，只确认迁移基础设施表存在。
 --
 -- ⚠ 纪律：版本登记（version/script/checksum/applied_at）由 SchemaMigrationRunner 在执行成功后

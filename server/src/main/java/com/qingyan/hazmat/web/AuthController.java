@@ -2,7 +2,7 @@ package com.qingyan.hazmat.web;
 
 import com.qingyan.hazmat.common.BizException;
 import com.qingyan.hazmat.common.Result;
-import com.qingyan.hazmat.security.ClientIp;
+import com.qingyan.hazmat.security.ClientIpResolver;
 import com.qingyan.hazmat.security.LoginAttemptService;
 import com.qingyan.hazmat.security.TokenService;
 import com.qingyan.hazmat.system.AuthService;
@@ -22,20 +22,24 @@ public class AuthController {
     private final AuthService authService;
     private final TokenService tokenService;
     private final LoginAttemptService loginAttempt;
+    private final ClientIpResolver clientIp;
 
     public AuthController(AuthService authService, TokenService tokenService,
-                          LoginAttemptService loginAttempt) {
+                          LoginAttemptService loginAttempt, ClientIpResolver clientIp) {
         this.authService = authService;
         this.tokenService = tokenService;
         this.loginAttempt = loginAttempt;
+        this.clientIp = clientIp;
     }
 
     @PostMapping("/auth/login")
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String username = body.get("username") == null ? "" : body.get("username").trim();
         String password = body.get("password");
-        // 防爆破：IP + 用户名 维度滑动窗口，锁定期间直接拒绝（错误码 4291）
-        String attemptKey = ClientIp.of(request) + '|' + username;
+        // 防爆破：IP + 用户名 维度滑动窗口，锁定期间直接拒绝（错误码 4291）。
+        // IP 默认取 TCP 对端地址；只有显式开启 trust-proxy 且反代在受信清单内才读 XFF，
+        // 否则伪造 X-Forwarded-For 即可无限重试。
+        String attemptKey = clientIp.resolve(request) + '|' + username;
         long locked = loginAttempt.lockedMinutes(attemptKey);
         if (locked > 0) {
             throw new BizException(LoginAttemptService.CODE_LOCKED,

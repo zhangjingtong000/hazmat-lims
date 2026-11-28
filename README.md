@@ -1,7 +1,6 @@
 # hazmat-lims · 实验室危险化学品管理系统
 
 > 演示项目：内置演示账号与默认口令，请勿直接部署到公网。对外提供访问前先按「部署」一节改掉口令与令牌密钥。
-
 实验室危化品从采购、入库、领用、退库到盘点的全流程管控。重点不在表单堆砌，而在**规则可判定**：
 禁配能不能同柜、出库该扣哪一批、盘点差多少算平，全部由后端算出来并拒绝，而不是靠操作人自己牢记。
 
@@ -14,7 +13,7 @@ flowchart TB
   S --> R["规则判定<br/>compat_rule 配对集 · FEFO 选取 · 条件扣减"]
   S --> M["Mapper ×20<br/>关键流转走条件更新"]
   R --> M
-  M --> DB[("H2 / MySQL 8 · 22 张业务表")]
+  M --> DB[("H2 / MySQL 8 · 23 张业务表<br/>另 schema_version，共 24 张")]
 ```
 
 关键流转（借出 / 归还 / 报废 / 销账）的基本形状：Service 先查规则表做判定，判定通过后转成一条带
@@ -83,27 +82,69 @@ flowchart TB
 
 ## 快速开始
 
-环境：JDK 17+、Maven 3.9+；数据库用自带 H2 或自备 MySQL 8.0.x（本轮实测 8.0.45）。不需要任何私有仓库。
+环境：JDK 17+、Maven 3.9+、Node 18+（前端构建）；数据库用自带 H2 或自备 MySQL 8.0.x（本轮实测 8.0.45）。不需要任何私有仓库。
 
-### 默认（内嵌 H2，一条命令）
+前端是 Vue 单页应用，页面必须先构建出来并放进后端的 `classpath:/static`，jar 里才有界面。
+只执行 `mvn package` 就启动，`GET /` 会返回 404「前端未构建，请先 npm run build」——后端单测和纯 API 调试不需要前端，这是刻意保留的分支。
+
+### 一键（推荐）
 
 ```bash
-cd server
-mvn -q spring-boot:run          # 首次启动自动建表并注入演示数据，端口 8080
+# 仓库根目录。Windows 用 Git Bash：bash start.sh
+./start.sh
+```
+
+脚本依次做：构建前端 → 把 `web/dist` 拷进 `server/src/main/resources/static` → `mvn package` → 后台启动并轮询 `/health`。
+就绪后打开 `http://localhost:8080`，演示账号 `admin / admin123`。
+
+### 手动分步
+
+```bash
+# 1) 前端构建（首次需联网装依赖）
+cd web && npm ci && npm run build
+
+# 2) 产物交给后端同源提供
+mkdir -p ../server/src/main/resources/static
+cp -r dist/. ../server/src/main/resources/static/
+
+# 3) 启动后端（首次启动自动建表并注入演示数据）
+cd ../server && mvn -q spring-boot:run      # 端口 8080
 curl http://localhost:8080/health
 ```
 
-打开 `http://localhost:8080`，演示账号 `admin / admin123`（生产务必改，或启动前设 `APP_SEED_ADMIN_PASSWORD` 覆盖）。
+打开 `http://localhost:8080`。演示账号：`admin / admin123`；`zhang`（导师）、`li`（安全员）、
+`wang`（学院）、`zhao`（校级）、`chen` / `liu`（申请人）默认口令 `123456`。
+两组口令分别用 `APP_SEED_ADMIN_PASSWORD`、`APP_SEED_DEMO_PASSWORD` 覆盖（只在首次建库时生效）。
 数据落在 `server/data/` 下的 H2 文件库。
 
-**实测（2026-11-27，Windows / JDK 21.0.8 / Maven 3.9.9）**：
+跳过前端只跑 API 也可以：`cd server && mvn -q spring-boot:run`，此时 API 与 `/health` 正常，`GET /` 返回 404 提示先构建前端。
+
+### 界面
+
+| 登录 | 看板 |
+|---|---|
+| ![登录页](docs/screenshots/01-login.png) | ![看板](docs/screenshots/02-dashboard.png) |
+
+| 禁配墙（看板下半部分） | 化学品台账 |
+|---|---|
+| ![禁配墙](docs/screenshots/03-rule-wall.png) | ![台账](docs/screenshots/04-ledger.png) |
+
+| 基础数据 · 禁配规则 | 监管大屏 |
+|---|---|
+| ![禁配规则](docs/screenshots/05-compat-rules.png) | ![大屏](docs/screenshots/06-screen.png) |
+
+截图由 `e2e/scripts/screenshots.js` 生成（Playwright，1440×900）；后端起在 8080 后执行
+`cd e2e && BASE_URL=http://localhost:8080 node scripts/screenshots.js`。
+
+**实测（2026-11-28，Windows 11 / Git Bash / JDK 21.0.8 / Maven 3.9.9 / Node 22.20.0）**：
 
 ```text
-$ cd server && mvn -o spring-boot:run
-$ curl http://localhost:8080/health
-HTTP 200
-{"status":"UP","version":"1.0.0","time":"2026-11-27 14:37:37",
+$ ./start.sh
+[start] 已就绪（12s）：{"status":"UP","version":"1.0.0","time":"2026-11-28 16:33:28",
  "checks":{"db":"up","regs":"up(128)","ai":"degraded(no-key)"}}
+$ curl -I http://localhost:8080/
+HTTP/1.1 200
+Content-Type: text/html
 ```
 
 `db=up` 表示 H2 建表 + 种子数据就绪；`regs=up(128)` 是加载到的法规条目数；
@@ -123,7 +164,8 @@ mysql -uroot -p --default-character-set=utf8mb4 \
 # 2) 生成 MySQL 版建表脚本：MySQL 8 不认 CREATE INDEX IF NOT EXISTS
 python tools/convert_schema.py          # 产出仓库根目录下的 schema-mysql.sql（UTF-8 无 BOM）
 
-# 3) 导入（转换后 22 张表 / 44 个索引对象 = 24 条显式 CREATE INDEX + 20 个表内主键，exit 0）
+# 3) 导入（schema.sql 基线：22 张表 / 44 个索引对象 = 24 条显式 CREATE INDEX + 20 个表内主键，exit 0）
+#    启动后 V2 再补 notify_message 与 schema_version，全库共 24 张表（23 张业务表 + schema_version）
 mysql -uroot -p --default-character-set=utf8mb4 hazmat < schema-mysql.sql
 
 # 4) 启动。建表已手工完成，初始化模式设为 never
@@ -133,7 +175,7 @@ cd server && mvn -q spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
 跳过第 2 步直接导入，第一条 `CREATE UNIQUE INDEX IF NOT EXISTS` 就报
-`ERROR 1064 (42000)`；mysql 客户端在批处理模式下随即中止，22 张表里只建成 1 张。
+`ERROR 1064 (42000)`；mysql 客户端在批处理模式下随即中止，22 张业务表里只建成 1 张。
 `MYSQL_INIT_MODE` 留在默认 `always` 时，应用启动会在同一条语句上失败
 （`Failed to execute SQL script statement #2 of file [...schema.sql]`），所以必须显式设 `never`。
 `spring.sql.init.mode` 的默认值是 `always`：每次启动执行 `schema.sql`（语句全部带 `IF NOT EXISTS`，幂等）。
@@ -153,6 +195,7 @@ MySQL 8.0.45 免安装实例：mysqld --initialize-insecure（root 空口令）�
   ERROR 1064 (42000) at line 32: ... near 'IF NOT EXISTS uk_chem_code ON chem_info(code)'
   （在第一条索引处中止，只建成 1 张表）
 转换后导入 → exit 0，22 张表 / 44 个索引对象（24 条显式 CREATE INDEX + 20 个表内主键）
+应用启动后 V2 建 notify_message 与 schema_version → 共 24 张表（23 张业务表 + schema_version）
 MYSQL_INIT_MODE=always → 启动失败（statement #2 同一条索引语句），exit 1
 MYSQL_INIT_MODE=never  → GET /health 200
   {"status":"UP","version":"1.0.0","checks":{"db":"up","regs":"up(128)","ai":"degraded(no-key)"}}
@@ -161,7 +204,7 @@ MYSQL_INIT_MODE=never  → GET /health 200
 管理员登录 `code:0`；`/chem/stats/dashboard`、`/chem/stats/ledger`、`/chem/info/list`
 等只读接口全部 `code:0`；申购单创建 → 提交 → 审批中写链路成功；中文按 UTF-8 存取一致
 （`HEX('无水乙醇')` = `E697A0E6B0B4E4B999E98687`，与 Java 写入值逐字节相同）；
-`mvn -q test` 在 MySQL profile 改动后仍是 204 条全过。
+`mvn -q test` 在 MySQL profile 改动后仍是 216 条全过。
 
 **验证范围**：单实例 MySQL 8.0.x（本轮为 8.0.45 免安装实例，独立 datadir、独立端口）。
 5.7、DBA 托管实例、主从复制、跨时区部署不在本仓库的验证范围内，接入前先在自有环境把上面四步与 `/health` 自检跑一遍。
@@ -181,22 +224,40 @@ mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/
 | 环境变量 | 作用 | 未设置时的行为 |
 | --- | --- | --- |
 | `APP_SEED_ADMIN_PASSWORD` | 种子管理员 `admin` 的初始口令 | 回落到 `admin/admin123`，启动日志打印一行警告 |
+| `APP_SEED_DEMO_PASSWORD` | 其余 6 个演示账号（导师/安全员/学院/校级/申请人 ×2）的初始口令 | 回落到 `123456` |
 | `APP_TOKEN_SECRET` | 登录令牌的签名密钥 | 生成本次运行的临时随机密钥，重启后已签发令牌失效 |
+| `APP_SECURITY_TRUST_PROXY` | 是否信任反向代理写入的 `X-Forwarded-For` | `false`：只认 TCP 对端地址（`getRemoteAddr()`） |
+| `APP_SECURITY_TRUSTED_PROXIES` | 受信反代地址清单（精确 IP / IPv4 CIDR / `10.0.0.*`） | 空：即使开了 `trust-proxy` 也不读 XFF |
 | `DEEPSEEK_API_KEY` | AI 问答的模型凭据 | `/health` 报 `ai=degraded(no-key)`，问答走规则检索 |
 
 口令与密钥都不落盘、不回显：启动日志只说明取值来源，不打印本体。前两项建议在任何对外可达的部署里显式设置；
 `DEEPSEEK_API_KEY` 可选，AI 是增强路径，未配置时业务主流程不受影响。
+`APP_SECURITY_TRUST_PROXY` 只在前面确实有反向代理时开启，并把反代地址写进
+`APP_SECURITY_TRUSTED_PROXIES`；否则伪造 `X-Forwarded-For` 就能绕开登录锁定与接口限流。
+
+### 容器
+
+`Dockerfile` 是多阶段自包含构建：Node 阶段 `npm ci && npm run build`，Maven 阶段把 `dist` 拷进
+`classpath:/static` 后打出单 jar，运行时镜像只带 JRE 与 jar。干净 clone 直接构建即可，不需要本机预装依赖：
+
+```bash
+docker build -t hazmat-management:1.0.0 .
+docker run -d --name hazmat -p 8080:8080 -v hazmat-data:/app/data hazmat-management:1.0.0
+```
+
+`GET /health` 已配置为镜像健康检查；改用 MySQL 时传 `-e SPRING_PROFILES_ACTIVE=mysql` 与 `MYSQL_*`（见上一节）。
 
 ## 测试
 
-2026-11-27 在本机实测（Windows / JDK 21.0.8 / Maven 3.9.9 / Node 22.20.0）：
+2026-11-28 在本机实测（Windows 11 / JDK 21.0.8 / Maven 3.9.9 / Node 22.20.0）：
 
 | 项 | 命令 | 实测结果 |
 |---|---|---|
-| 后端单测 | `cd server && mvn -q test` | **Tests run: 204, Failures: 0, Errors: 0, Skipped: 0**（19 个测试类，`-o` 离线可跑） |
+| 后端单测 | `cd server && mvn -q test` | **Tests run: 216, Failures: 0, Errors: 0, Skipped: 0**（22 个测试类，`-o` 离线可跑） |
 | 前端依赖 | `cd web && npm ci` | `added 126 packages in 36s`（首次需联网） |
-| 前端构建 | `cd web && npm run build` | **vite 6.4.3，2349 modules transformed，29.92 s**；`dist/index.html` 1.90 kB、CSS 427.77 kB、JS 3 377.62 kB（gzip 1 066.31 kB）；只有「chunk 大于 500 kB」提示 |
-| E2E | `cd e2e && npx playwright test` | **29 passed（1.2 m，4 workers）** |
+| 前端构建 | `cd web && npm run build` | **vite 6.4.3，2349 modules transformed，16.43 s**；`dist/index.html` 1.90 kB、CSS 427.77 kB、JS 3 377.51 kB（gzip 1 066.22 kB）；只有「chunk 大于 500 kB」提示 |
+| E2E | `cd e2e && npx playwright test` | **29 passed（56.6 s，4 workers）** |
+| CI | `.github/workflows/ci.yml` | 后端单测 + 前端构建 + Playwright E2E 三个作业 |
 
 E2E 的前置是三件事：① 后端在 8080 上同时提供前端页面与 API；② `web/dist/` 已构建；③ Playwright 浏览器已安装。
 任缺一件，失败信息都容易误读成业务失败——尤其缺浏览器时报 `Executable doesn't exist at ...chromium_headless_shell`。
@@ -229,6 +290,11 @@ BASE_URL=http://localhost:8080 npx playwright test
 - **SQL 只用 H2 与 MySQL 都支持的函数。** 效期预警与「已批超期未入库」用 `TIMESTAMPDIFF(DAY, a, b)`，两库语义一致；
   需要按自然日比较时再套 `CAST(audit_time AS DATE)` 保持原口径。`DATEDIFF` 的三参数形式、`FORMATDATETIME`
   这类 H2 专有写法不进 SQL。
+- **客户端 IP 默认取 TCP 对端。** `ClientIpResolver` 在 `app.security.trust-proxy=false`（默认）时
+  只读 `request.getRemoteAddr()`，伪造 `X-Forwarded-For` 不会改变登录锁定键（`IP|用户名`）与限流键。
+  部署在反向代理后才开启该开关，并把反代地址列进 `app.security.trusted-proxies`（精确 IP / IPv4 CIDR /
+  `10.0.0.*`）；清单为空时即使开启也不读 XFF。受信场景下从 XFF 最右侧往左取第一个非受信地址，
+  客户端在左侧塞的伪造值会被跳过。
 - **关键流转走条件更新**（`WHERE 状态=期望`），以受影响行数判断成功与否，判据不放在「先查再改」里：
   批次扣减/回加、单据状态推进、销账属于这一类。**基础信息修改走无条件更新**：`chem_info.update` 按 id 直改、
   `updateStatus` 由 Service 先读后写，面向单用户维护档案，不承担并发防护。涉及多表的写路径把事务边界声明在 Service 方法上。

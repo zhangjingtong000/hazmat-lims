@@ -41,6 +41,14 @@ public class SchemaMigrationRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SchemaMigrationRunner.class);
 
+    /**
+     * 历史校验和：V1 只修正了表数量注释（21 → 22/23/24），语义未变。
+     * 已按旧内容登记过的库允许一次性平滑升级，避免升级即拒绝启动；
+     * 登记行会同步刷新为新校验和，之后仍严格校验。
+     */
+    private static final Map<String, String> LEGACY_CHECKSUMS = Map.of(
+            "V1__baseline.sql", "d33271cad45b4f6bf2f009cbea6c0d68f7a3ccc3230f0670685d907c2f413347");
+
     private final JdbcTemplate jdbc;
 
     public SchemaMigrationRunner(JdbcTemplate jdbc) {
@@ -115,10 +123,26 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         if (recorded == null || recorded.isBlank() || actual == null) {
             return;
         }
-        if (!recorded.equalsIgnoreCase(actual)) {
-            throw new IllegalStateException("[migration] 脚本 " + file + " 内容与已登记校验和不一致（version="
-                    + version + "）。已应用的迁移脚本不可改写：如需变更结构，请新增 V{n}__ 脚本。");
+        if (recorded.equalsIgnoreCase(actual)) {
+            return;
         }
+        if (isLegacyChecksum(file, recorded)) {
+            jdbc.update("UPDATE schema_version SET checksum = ? WHERE version = ?", actual, version);
+            log.warn("[migration] {} 为历史注释修正前的校验和，已一次性刷新登记（version={}）；"
+                    + "内容语义未变，后续仍按新校验和严格校验", file, version);
+            return;
+        }
+        throw new IllegalStateException("[migration] 脚本 " + file + " 内容与已登记校验和不一致（version="
+                + version + "）。已应用的迁移脚本不可改写：如需变更结构，请新增 V{n}__ 脚本。");
+    }
+
+    /** 是否为已知的历史校验和（仅限脚本内容只做过注释修正的情形）。 */
+    static boolean isLegacyChecksum(String file, String recorded) {
+        if (recorded == null) {
+            return false;
+        }
+        String legacy = LEGACY_CHECKSUMS.get(file);
+        return legacy != null && legacy.equalsIgnoreCase(recorded);
     }
 
     /** 当前（最大）版本号。CAST AS SIGNED 是 H2 与 MySQL 8 都接受的有符号整数转换。 */
