@@ -6,13 +6,13 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      '/api': { target: 'http://localhost:8081', changeOrigin: true, rewrite: p => p.replace(/^\/api/, '') },
-      '/auth': { target: 'http://localhost:8081', changeOrigin: true },
-      '/chem': { target: 'http://localhost:8081', changeOrigin: true },
-      '/system': { target: 'http://localhost:8081', changeOrigin: true },
-      '/biz': { target: 'http://localhost:8081', changeOrigin: true },
+      '/api': { target: 'http://localhost:8080', changeOrigin: true, rewrite: p => p.replace(/^\/api/, '') },
+      '/auth': { target: 'http://localhost:8080', changeOrigin: true },
+      '/chem': { target: 'http://localhost:8080', changeOrigin: true },
+      '/system': { target: 'http://localhost:8080', changeOrigin: true },
+      '/biz': { target: 'http://localhost:8080', changeOrigin: true },
       // 健康检查探针端点（生产由 jar 同源提供）
-      '/health': { target: 'http://localhost:8081', changeOrigin: true }
+      '/health': { target: 'http://localhost:8080', changeOrigin: true }
     }
   }
 })

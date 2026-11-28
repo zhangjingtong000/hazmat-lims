@@ -7,7 +7,7 @@
 #   ① H2（默认 profile，内嵌文件库）：
 #      **必须冷备**（先 stop.sh）：H2 单进程独占数据库文件，Windows 下运行中复制会报
 #      "Device or resource busy" 并产出损坏包（Linux 上也只得到崩溃一致快照）。
-#      脚本会自动探测 8081 是否在跑：在跑 → 明确拒绝并给出停服指令（--force 可强行尝试，
+#      脚本会自动探测 8080 是否在跑：在跑 → 明确拒绝并给出停服指令（--force 可强行尝试，
 #      但产物不保证可用，仅用于排障）。
 #      产物：backups/h2-YYYYmmdd-HHMMSS.tar.gz（含 data 目录，打包后自动校验可读性）
 #   ② MySQL（--profile mysql）：
@@ -23,7 +23,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/backups"
 KEEP=14
 PROFILE=""   # 默认 H2 文件快照；--profile mysql 走 mysqldump 逻辑备份
-PORT=8081
+PORT=8080
 FORCE=0
 
 while [[ $# -gt 0 ]]; do

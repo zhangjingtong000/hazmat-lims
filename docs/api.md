@@ -1,11 +1,11 @@
-# 接口文档（I3，手写清单）
+# 接口文档（手写清单）
 
 > 项目：hazmat-lims / hazmat-management ｜ 基线版本：v1.0.0 ｜ 生成方式：按控制器源码逐条核对（非 OpenAPI 自动生成）
 > 维护约定：**改接口必须同步改本文件**（清单与代码同源是硬要求；下一版计划引入 springdoc 自动生成以消除漂移风险）。
 
 ## 0. 通用约定
 
-- **Base URL**：`http://<host>:8081`（默认端口 8081）
+- **Base URL**：`http://<host>:8080`（默认端口 8080）
 - **认证**：除 `/auth/login`、`/health` 外，所有接口需带 `Authorization: Bearer <token>`；
   令牌由登录接口返回，默认 12 小时有效（`app.token-hours`）。
 - **响应包裹**：业务接口统一返回 `{"code":0,"message":"success","data":{...}}`
@@ -16,7 +16,7 @@
 - **时间格式**：`yyyy-MM-dd HH:mm:ss`；日期字段 `yyyy-MM-dd`；服务端统一 `Asia/Shanghai` 口径。
 - **错误码**：`4001` 参数校验失败｜`41xx` 状态/守卫类｜`42xx` 双签与审批人约束｜`43xx` 禁配｜
   `44xx` 数量对账｜`45xx` 台账状态｜`46xx` 废弃批次｜`4290` 限流｜`4291` 登录锁定｜`500` 系统异常。
-  完整释义见 `详细设计.md` §4 错误码表与各接口说明。
+  完整释义见各接口说明与 `GlobalExceptionHandler` / 业务代码中的抛出点。
 - **追踪**：所有响应带 `X-Trace-Id`（8 位短码），排障时据此检索日志。
 - **权限**：标注 `perm:` 的接口需对应权限键（管理员 `admin` 角色放行全部）；
   未标注者仅需登录。
@@ -30,7 +30,7 @@
 | POST | `/auth/password` | 自助改密；body `{oldPassword,newPassword}`；新口令 8~64 位且至少两类字符 | 登录 |
 
 ```bash
-curl -s -X POST http://localhost:8081/auth/login -H 'Content-Type: application/json' \
+curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/json' \
   -d '{"username":"admin","password":"admin123"}'
 # → {"code":0,"data":{"token":"eyJ...","user":{...},"perms":["hzm:info:add",...]}}
 ```
@@ -120,9 +120,9 @@ curl -s -X POST http://localhost:8081/auth/login -H 'Content-Type: application/j
 |---|---|---|---|
 | GET | `/chem/req/list` | `status`、`mine`、`todo`、分页 | 登录 |
 | GET | `/chem/req/{id}` | 详情：单头 + FEFO 出库分配明细（`batches`） | 登录 |
-| POST | `/chem/req` | 提交领用；body 见下；N-5 起点分支（分类≥1 且非关联 → 待导师签） | `hzm:req:submit` |
+| POST | `/chem/req` | 提交领用；body 见下；起点分支（分类≥1 且非关联 → 待导师签） | `hzm:req:submit` |
 | POST | `/chem/req/{id}/advisor` | 导师签（仅单据指定导师本人） | `hzm:req:advisor` |
-| POST | `/chem/req/{id}/check` | 复核双签：通过即 FEFO 出库（过期批次拦截） | `hzm:req:check` |
+| POST | `/chem/req/{id}/check` | 复核双签：通过即 FEFO 出库（候选批次只含未过期且有余量者） | `hzm:req:check` |
 | PUT | `/chem/req/{id}/dispatch` | 批次改派（等量换批）；body `{originalBatchId,newBatchId}` | `hzm:req:dispatch` |
 | POST | `/chem/req/{id}/return` | 余量归还；body `{batchId,qty}`；累计不得超领用量 | 登录（仅本人） |
 | GET | `/chem/req/{id}/returns` | 本单归还记录 | 登录 |
@@ -235,9 +235,9 @@ curl -s -X POST http://localhost:8081/auth/login -H 'Content-Type: application/j
 
 ## 15. 客户端能力（无新增接口）
 
-- **Excel 导出（D1）**：纯前端生成（SheetJS 写能力），数据来自各列表 `GET */list` 分页接口，
+- **Excel 导出**：纯前端生成（SheetJS 写能力），数据来自各列表 `GET */list` 分页接口，
   故无"导出接口"；导出遵循当前筛选条件，最多 5000 行。
-- **CSV 导入（A7）**：模板下载与文件解析均在浏览器端完成（`web/src/utils/importCsv.js`，零依赖），
+- **CSV 导入**：模板下载与文件解析均在浏览器端完成（`web/src/utils/importCsv.js`，零依赖），
   逐行校验通过后**复用 `POST /chem/info`** 提交，故无"导入接口"；
   失败行明细在前端汇总展示，服务端仅以 4001/业务码原样回传原因。
-- **站内信（G6）**：路由 `/system/notify/*` 见 §13；未读数由顶栏每 30s 轮询（`GET /system/notify/unread-count`）。
+- **站内信**：路由 `/system/notify/*` 见 §13；未读数由顶栏每 30s 轮询（`GET /system/notify/unread-count`）。

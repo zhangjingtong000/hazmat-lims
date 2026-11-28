@@ -15,7 +15,7 @@ public interface ChemCheckDiffMapper {
     /** 某盘点单的差异明细（按插入序，详情页数据源）。 */
     List<ChemCheckDiff> selectByCheck(@Param("checkId") Long checkId);
 
-    /** 差异行备注（"需重盘"标记——adjust 与批次封存/销账竞态，⑦-6）。 */
+    /** 差异行备注（"需重盘"标记——adjust 与批次封存/销账竞态时留痕）。 */
     int setRemark(@Param("id") Long id, @Param("remark") String remark);
 
     /** 调账落账：写 adjust_time（一次性，防重复调账）。 */

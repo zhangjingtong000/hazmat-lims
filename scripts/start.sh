@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
 # hazmat-lims 启停脚本：start.sh
-#   用法：bash scripts/start.sh [--port 8081] [--profile mysql] [--reset-data]
+#   用法：bash scripts/start.sh [--port 8080] [--profile mysql] [--reset-data]
 #   前置：已构建 jar（server/target/hazmat-management-1.0.0.jar）；未构建时先执行
 #         cd server && mvn package -DskipTests   （或 bash scripts/restart.sh --build）
 #   行为：① 检查端口占用（占用即拒绝启动，避免"二次启动"假成功）
@@ -14,7 +14,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER_DIR="$ROOT/server"
 JAR="$SERVER_DIR/target/hazmat-management-1.0.0.jar"
-PORT=8081
+PORT=8080
 PROFILE=""
 RESET_DATA=0
 WAIT_SECONDS=90

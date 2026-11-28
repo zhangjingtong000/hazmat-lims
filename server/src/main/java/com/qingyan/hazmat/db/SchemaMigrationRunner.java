@@ -14,17 +14,23 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * 轻量 schema 版本化迁移（B8/H5，零新依赖，替代 Flyway）。
+ * 轻量 schema 版本化迁移（零新依赖，替代 Flyway）。
  *
  * <p>机制：启动时（早于 {@link com.qingyan.hazmat.DemoDataRunner} 种子注入）扫描
  * {@code classpath:db/migration/V*__*.sql}，按文件名序执行尚未应用（不在 {@code schema_version} 表）
  * 的脚本，执行成功后登记版本号 + 脚本名 + 内容校验和。首个基线由既有
  * {@code schema.sql}（spring.sql.init，全部 CREATE TABLE IF NOT EXISTS）承担，V1 仅登记版本。
+ *
+ * <p>已应用的脚本不可改写：启动时对已登记版本重算内容校验和，与库里的值不一致即阻断启动。
+ * 需要变更结构时新增一个 V{n} 脚本，而不是修改历史脚本——历史脚本可能已在别的环境执行过，
+ * 改动它会让不同环境的结构悄悄分叉。
  *
  * <p>幂等：已登记版本跳过；脚本自身使用 IF NOT EXISTS / 条件写入，重复执行无副作用。
  * 失败即抛出，阻止应用带病启动（升级不丢数据的前提是"迁移可见地成功"）。
@@ -52,6 +58,10 @@ public class SchemaMigrationRunner implements ApplicationRunner {
                 )
                 """);
         Set<String> applied = new HashSet<>(jdbc.queryForList("SELECT version FROM schema_version", String.class));
+        Map<String, String> appliedChecksums = new HashMap<>();
+        jdbc.query("SELECT version, checksum FROM schema_version", rs -> {
+            appliedChecksums.put(rs.getString("version"), rs.getString("checksum"));
+        });
         List<Resource> scripts = new ArrayList<>();
         for (Resource r : new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/*.sql")) {
             scripts.add(r);
@@ -65,10 +75,11 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         for (Resource script : scripts) {
             String file = String.valueOf(script.getFilename());
             String version = versionOf(file);
+            String sql = new String(script.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             if (applied.contains(version)) {
+                verifyChecksum(file, version, appliedChecksums.get(version), sql);
                 continue;
             }
-            String sql = new String(script.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             for (String stmt : splitStatements(sql)) {
                 jdbc.execute(stmt);
             }
@@ -95,10 +106,26 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         return head.replaceFirst("^[Vv]", "");
     }
 
+    /**
+     * 已应用脚本的内容校验：库里记录的校验和与当前文件不一致则阻断启动。
+     * 历史库（早期版本登记时 checksum 为空）不校验，避免升级即失败。
+     */
+    private void verifyChecksum(String file, String version, String recorded, String sql) {
+        String actual = sha256(sql);
+        if (recorded == null || recorded.isBlank() || actual == null) {
+            return;
+        }
+        if (!recorded.equalsIgnoreCase(actual)) {
+            throw new IllegalStateException("[migration] 脚本 " + file + " 内容与已登记校验和不一致（version="
+                    + version + "）。已应用的迁移脚本不可改写：如需变更结构，请新增 V{n}__ 脚本。");
+        }
+    }
+
+    /** 当前（最大）版本号。CAST AS SIGNED 是 H2 与 MySQL 8 都接受的有符号整数转换。 */
     private String currentVersion() {
         try {
             return jdbc.queryForObject(
-                    "SELECT version FROM schema_version ORDER BY CAST(version AS INT) DESC LIMIT 1", String.class);
+                    "SELECT version FROM schema_version ORDER BY CAST(version AS SIGNED) DESC LIMIT 1", String.class);
         } catch (Exception e) {
             return "unknown";
         }

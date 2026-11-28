@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
 # hazmat-lims 启停脚本：restart.sh
-#   用法：bash scripts/restart.sh [--port 8081] [--profile mysql] [--build] [--reset-data]
+#   用法：bash scripts/restart.sh [--port 8080] [--profile mysql] [--build] [--reset-data]
 #   行为：stop →（可选构建）→ start（等待 /health 就绪）
 #   --build：先打包（关掉占用端口的实例后再 package，避免占用时 repackage 静默跳过）
 #   运行时：启动器统一由 start.sh 选择——优先包内自带 runtime/bin/java，其次系统 java
@@ -9,7 +9,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT=8081
+PORT=8080
 PROFILE=""
 BUILD=0
 RESET=0

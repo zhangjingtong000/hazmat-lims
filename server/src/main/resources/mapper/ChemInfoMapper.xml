@@ -56,9 +56,12 @@
         SELECT * FROM chem_batch WHERE id = #{id}
     </select>
 
+    <!-- FEFO 候选批次：在库、有余量、且未过期。过期批次不参与先进先出（见 README「FEFO」）。
+         无有效期（expiry_date 为空）的批次按"不设失效日"处理，仍参与出库。 -->
     <select id="selectFefoBatches" resultType="com.qingyan.hazmat.hazmat.entity.ChemBatch">
         SELECT * FROM chem_batch
         WHERE chemical_id = #{chemicalId} AND status = 0 AND qty_left &gt; 0
+          AND (expiry_date IS NULL OR expiry_date &gt;= CURDATE())
         ORDER BY expiry_date ASC, lot_no ASC
     </select>
 

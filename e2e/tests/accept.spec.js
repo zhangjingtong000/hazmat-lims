@@ -66,8 +66,8 @@ test.describe.serial('hazmat-lims 验收 A01-A16', () => {
       await expect(page.locator('.warn-tile', { hasText: t }).first()).toBeVisible()
     }
     await expect(page.locator('.warn-tile')).toHaveCount(4)
-    // 分类库存概览：5 个分类行渲染（注：后端 /chem/stats/ledger 返回大写下划线键 CHEM_NAMES/TOTAL_STOCK，
-    // 前端绑定 row.chem_names/row.category 等小驼峰 → 品名/现存列显示为空，产品缺陷，此处只断言行渲染）
+    // 分类库存概览：5 个分类行渲染（后端 /chem/stats/ledger 以带引号别名返回小写键
+    // chem_names/total_stock，前端按 row.chem_names 绑定，品名与现存列正常显示）
     await expect(page.locator('.ledger-row')).toHaveCount(5)
     expect(clean(issues), clean(issues).join('\n')).toEqual([])
   })

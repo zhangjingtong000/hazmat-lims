@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
 # hazmat-lims 启停脚本：stop.sh
-#   用法：bash scripts/stop.sh [--port 8081]
+#   用法：bash scripts/stop.sh [--port 8080]
 #   行为：优先按 logs/app.pid 优雅停止（SIGTERM，最多等 20s）；pid 失配时按端口反查兜底；
 #         停止后确认端口已释放，否则返回非 0（供 CI/运维判断）。
 # ═══════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT=8081
+PORT=8080
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --port) PORT="$2"; shift 2 ;;

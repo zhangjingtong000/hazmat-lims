@@ -1,5 +1,7 @@
 # hazmat-lims · 实验室危险化学品管理系统
 
+> 演示项目：内置演示账号与默认口令，请勿直接部署到公网。对外提供访问前先按「部署」一节改掉口令与令牌密钥。
+
 实验室危化品从采购、入库、领用、退库到盘点的全流程管控。重点不在表单堆砌，而在**规则可判定**：
 禁配能不能同柜、出库该扣哪一批、盘点差多少算平，全部由后端算出来并拒绝，而不是靠操作人自己牢记。
 
@@ -25,10 +27,10 @@ flowchart TB
 ### 一、禁配矩阵：按排序键匹配，自反必须禁止
 
 `compat_rule(group_a, group_b)` 按有序对存储。判冲突时把柜内在库批次的相容组与规则集两两配对，
-配对键由 `CompatService.pairKey` 生成——先把两端字符串排序再拼接。顺序在键里被抹平，所以**判定的查询本身方向无关**：
-只存 `(酸, 碱)` 一行，`(碱, 酸)` 的查询同样命中；"只写一条另一方向就漏判"的说法不成立。
-新增/删除仍成对写两行（两条写操作同事务，不会出现半对规则），目的是让规则表每对完整、列表展示与人工维护
-口径一致，不是判定正确性的必要条件。真正防重的是 `UNIQUE(group_a, group_b)`。
+配对键由 `CompatService.pairKey` 生成——先把两端字符串排序再拼接。顺序在键里被抹平，
+因此一条规则覆盖两个查询方向：只存 `(酸, 碱)` 一行，按 `(碱, 酸)` 查同样命中。
+新增/删除仍成对写两行（两条写操作同事务，不会出现半对规则），目的是让规则表每对完整、
+列表展示与人工维护口径一致；防重由 `UNIQUE(group_a, group_b)` 兜底。
 
 自反（`group_a = group_b`）在服务层直接拒绝。同组化学品同柜是常态，若允许自反规则，等于一条数据就能
 让某类化学品全场无处可放，而且这种"规则把自己禁掉"的故障极难从日志里看出来。
@@ -41,7 +43,7 @@ flowchart TB
 
 出库不是"选一批扣掉"，而是按效期先后排队逐批扣：
 
-1. 先取候选批次（在库、有余量），按效期升序、批号次序排；
+1. 先取候选批次（在库、有余量、且未过期），按效期升序、批号次序排；
 2. 用 `SUM(qty_left)` 做一次预检，总量不够直接拒绝，不做任何扣减；
 3. 逐批执行 `UPDATE ... SET qty_left = qty_left - ? WHERE id = ? AND status = 0 AND qty_left >= ?`；
 4. **受影响行数为 0 就 `continue` 换下一批**——这行没扣成（被别人抢先、或状态已变），本次需求量原样带到下一批；
@@ -50,6 +52,11 @@ flowchart TB
 第 4 步是这套写法与"先查再改"的分水岭。先查再改在并发下会写出负余量或丢扣减；
 条件更新把"这一批还够不够"交给数据库判定，`affected=0` 不是异常，而是正常的换批信号。
 单据状态 `1→2` 放在所有扣减与明细落库之后才推进，保证"出库中"的单据不可能只有半张明细。
+
+候选集的效期条件是必须的：过期批次默认仍是 `status=0`（没有任务把它改成 3），
+只按状态与余量筛选，效期最早的过期批次会排在队首优先发出去。SQL 侧以
+`(expiry_date IS NULL OR expiry_date >= CURDATE())` 排除过期批次——没有失效日期的批次按"不设期限"处理，
+照常参与出库。
 
 ### 三、账物守恒：Σ批次余量 ≡ 台账在库量
 
@@ -114,11 +121,10 @@ mysql -uroot -p --default-character-set=utf8mb4 \
   -e "CREATE DATABASE hazmat DEFAULT CHARACTER SET utf8mb4"
 
 # 2) 生成 MySQL 版建表脚本：MySQL 8 不认 CREATE INDEX IF NOT EXISTS
-sed -E 's/^CREATE (UNIQUE )?INDEX IF NOT EXISTS/CREATE \1INDEX/' \
-  server/src/main/resources/schema.sql > /tmp/schema-mysql.sql
+python tools/convert_schema.py          # 产出仓库根目录下的 schema-mysql.sql（UTF-8 无 BOM）
 
 # 3) 导入（转换后 22 张表 / 44 个索引对象 = 24 条显式 CREATE INDEX + 20 个表内主键，exit 0）
-mysql -uroot -p --default-character-set=utf8mb4 hazmat < /tmp/schema-mysql.sql
+mysql -uroot -p --default-character-set=utf8mb4 hazmat < schema-mysql.sql
 
 # 4) 启动。建表已手工完成，初始化模式设为 never
 export MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DATABASE=hazmat \
@@ -126,26 +132,15 @@ export MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DATABASE=hazmat \
 cd server && mvn -q spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
-跳过第 2 步直接导入，第 32 行第一条 `CREATE UNIQUE INDEX IF NOT EXISTS` 就报
+跳过第 2 步直接导入，第一条 `CREATE UNIQUE INDEX IF NOT EXISTS` 就报
 `ERROR 1064 (42000)`；mysql 客户端在批处理模式下随即中止，22 张表里只建成 1 张。
 `MYSQL_INIT_MODE` 留在默认 `always` 时，应用启动会在同一条语句上失败
 （`Failed to execute SQL script statement #2 of file [...schema.sql]`），所以必须显式设 `never`。
 `spring.sql.init.mode` 的默认值是 `always`：每次启动执行 `schema.sql`（语句全部带 `IF NOT EXISTS`，幂等）。
 MySQL 生产库若已由 DBA 建好，设 `never` 跳过重复执行，顺带避开 MySQL 不认的那几条建索引语句。
 
-Windows 没有 `sed` 时用 PowerShell 做同样替换。两个坑：`Get-Content` 默认按 ANSI 解码，
-必须先加 `-Encoding UTF8`，否则脚本里的中文注释会乱码；`Set-Content -Encoding utf8`
-在 PowerShell 5.1 下写出的是带 BOM 的 UTF-8。实测 8.0.45 的客户端能吞掉 BOM，
-但不保证换版本还如此，稳妥写法是直接写无 BOM：
-
-```powershell
-$lines = Get-Content -Path server\src\main\resources\schema.sql -Encoding UTF8
-$utf8NoBom = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllLines('schema-mysql.sql',
-  ($lines -replace '^CREATE (UNIQUE )?INDEX IF NOT EXISTS','CREATE $1INDEX'), $utf8NoBom)
-```
-
-`-replace` 要作用在逐行数组上，`^` 才锚得住行首；若对整段文本替换，正则需加 `(?m)`。
+转换只动索引语句，`CREATE TABLE IF NOT EXISTS` 与数据类型都原样保留；脚本用 UTF-8 无 BOM 写出，
+Windows 下不需要另装 `sed` 或手工改编码。
 
 **MySQL 分支实测（2026-11-27，Windows / JDK 21.0.8 / Maven 3.9.9）**：
 
@@ -166,7 +161,7 @@ MYSQL_INIT_MODE=never  → GET /health 200
 管理员登录 `code:0`；`/chem/stats/dashboard`、`/chem/stats/ledger`、`/chem/info/list`
 等只读接口全部 `code:0`；申购单创建 → 提交 → 审批中写链路成功；中文按 UTF-8 存取一致
 （`HEX('无水乙醇')` = `E697A0E6B0B4E4B999E98687`，与 Java 写入值逐字节相同）；
-`mvn -q test` 在 MySQL profile 改动后仍是 202 条全过。
+`mvn -q test` 在 MySQL profile 改动后仍是 204 条全过。
 
 **验证范围**：单实例 MySQL 8.0.x（本轮为 8.0.45 免安装实例，独立 datadir、独立端口）。
 5.7、DBA 托管实例、主从复制、跨时区部署不在本仓库的验证范围内，接入前先在自有环境把上面四步与 `/health` 自检跑一遍。
@@ -176,7 +171,7 @@ MYSQL_INIT_MODE=never  → GET /health 200
 ```bash
 cd web && npm ci && npm run build
 mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/resources/static/   # 再启动后端即同源访问
-# 开发模式：后端加 --server.port=8081，另开 npm run dev（5174，代理已指向 8081）
+# 开发模式：后端默认监听 8080，另开 npm run dev（5174，代理已指向 8080）
 ```
 
 ## 部署
@@ -198,12 +193,12 @@ mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/
 
 | 项 | 命令 | 实测结果 |
 |---|---|---|
-| 后端单测 | `cd server && mvn -q test` | **Tests run: 202, Failures: 0, Errors: 0, Skipped: 0**（17 个测试类，`-o` 离线可跑） |
+| 后端单测 | `cd server && mvn -q test` | **Tests run: 204, Failures: 0, Errors: 0, Skipped: 0**（19 个测试类，`-o` 离线可跑） |
 | 前端依赖 | `cd web && npm ci` | `added 126 packages in 36s`（首次需联网） |
 | 前端构建 | `cd web && npm run build` | **vite 6.4.3，2349 modules transformed，29.92 s**；`dist/index.html` 1.90 kB、CSS 427.77 kB、JS 3 377.62 kB（gzip 1 066.31 kB）；只有「chunk 大于 500 kB」提示 |
 | E2E | `cd e2e && npx playwright test` | **29 passed（1.2 m，4 workers）** |
 
-E2E 的前置是三件事：① 后端在 8081 上同时提供前端页面与 API；② `web/dist/` 已构建；③ Playwright 浏览器已安装。
+E2E 的前置是三件事：① 后端在 8080 上同时提供前端页面与 API；② `web/dist/` 已构建；③ Playwright 浏览器已安装。
 任缺一件，失败信息都容易误读成业务失败——尤其缺浏览器时报 `Executable doesn't exist at ...chromium_headless_shell`。
 先把 `dist/` 交给后端同源提供，再起服务：
 
@@ -214,13 +209,13 @@ cd web && npm run build
 mkdir -p ../server/src/main/resources/static && cp -r dist/. ../server/src/main/resources/static/
 
 # 方式 B：不重新打包，启动时把静态目录指过去（本轮实测用的这条）
-cd ../server && java -jar target/hazmat-management-1.0.0.jar --server.port=8081 \
-  --spring.web.resources.static-locations=file:///E:/github/publish/hazmat-lims/web/dist/ \
+cd ../server && java -jar target/hazmat-management-1.0.0.jar --server.port=8080 \
+  --spring.web.resources.static-locations=file:../web/dist/ \
   --spring.datasource.url='jdbc:h2:file:./data/e2e-hazmat;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE'
 
 # 首次需要浏览器二进制（约 124 MB）；缺了 29 条会全部报 Executable doesn't exist
 cd ../e2e && npm ci && npx playwright install chromium
-BASE_URL=http://localhost:8081 npx playwright test
+BASE_URL=http://localhost:8080 npx playwright test
 ```
 
 单测集中在规则本身：禁配的成对命中与自反拒绝、FEFO 跨批拆分与"扣空换批"、盘点两段分离、

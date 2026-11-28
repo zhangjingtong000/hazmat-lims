@@ -1,7 +1,7 @@
 /* 共享辅助：hazmat-lims E2E（extra.spec.js / accept.spec.js / review.spec.js 共同引用） */
 const ADMIN = { username: 'admin', password: 'admin123' }
 const LI = { username: 'li', password: '123456' }
-const API_BASE = process.env.BASE_URL || 'http://localhost:8081'
+const API_BASE = process.env.BASE_URL || 'http://localhost:8080'
 
 async function login(page, account) {
   await page.goto('/#/login')

@@ -17,11 +17,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * 账物盘点（R4 核账）：create（双人制单）→ finish（双人提交差异记录，**不改库存**，
+ * 账物盘点：create（双人制单）→ finish（双人提交差异记录，**不改库存**，
  * 盘点与调账两段分离）→ adjust（持权人增量修正，批次+台账同事务 ±）。
- * adjust 守卫：批次须 status=0（⑦-6：finish 与 adjust 之间批次可能已被惰性封存/销账，
- * 加给不在 Σ 的批次会破不变量——失败该差异行 remark 标"需重盘"）；
- * 增量修正语义（V5-3）：diff>0 回加 / diff<0 条件扣减，禁"设为 actual_qty"。
+ * adjust 守卫：批次须 status=0。finish 与 adjust 之间批次可能已被封存/销账，
+ * 对不在 Σ 里的批次做加减会破不变量——失败时该差异行 remark 标"需重盘"；
+ * 增量修正语义：diff>0 回加 / diff<0 条件扣减，禁"设为 actual_qty"。
  */
 @Service
 public class CheckService {
@@ -32,22 +32,22 @@ public class CheckService {
     public static final int RESULT_BALANCED = 1; // 平
     public static final int RESULT_UNBALANCED = 2; // 不平
 
-    private static final String REMARK_RECHECK = "需重盘";
-
     private final ChemCheckMapper checkMapper;
     private final ChemCheckDiffMapper diffMapper;
     private final ChemInfoMapper chemMapper;
     private final PurchaseReqMapper reqMapper;
     private final ApprovalChainService chainService;
+    private final CheckRemarkService remarkService;
 
     public CheckService(ChemCheckMapper checkMapper, ChemCheckDiffMapper diffMapper,
                         ChemInfoMapper chemMapper, PurchaseReqMapper reqMapper,
-                        ApprovalChainService chainService) {
+                        ApprovalChainService chainService, CheckRemarkService remarkService) {
         this.checkMapper = checkMapper;
         this.diffMapper = diffMapper;
         this.chemMapper = chemMapper;
         this.reqMapper = reqMapper;
         this.chainService = chainService;
+        this.remarkService = remarkService;
     }
 
     /** 编码生成：PD-年月日-NNN（当日序，唯一索引兜底重试）。 */
@@ -119,9 +119,12 @@ public class CheckService {
 
     /**
      * 调账：持 'hzm:check:adjust'（4105）；差异行未调过账（4101）；
-     * 批次须 status=0——否则该差异行 remark 标"需重盘"并拒绝（⑦-6，封存批次已退出 Σ，
+     * 批次须 status=0——否则该差异行 remark 标"需重盘"并拒绝（封存批次已退出 Σ，
      * 加减其余量必破守恒）；增量修正：diff>0→addBatch(+diff)，diff<0→deductBatch(|diff|)
      * （条件更新，不足→4101），台账 changeStock 同事务同步；落 adjust_time 防重复调账。
+     *
+     * <p>"需重盘"标记走 {@link CheckRemarkService} 的独立事务：本方法抛出 4101 会回滚
+     * 当前事务，标记若同事务则一并丢失。
      */
     @Transactional
     public void adjust(long checkId, long diffId, long user) {
@@ -137,14 +140,12 @@ public class CheckService {
         }
         ChemBatch batch = chemMapper.selectBatch(diff.getBatchId());
         if (batch == null) {
-            diffMapper.setRemark(diffId, REMARK_RECHECK);
+            remarkService.markRecheck(diffId);
             throw new BizException(4101, "批次不存在，差异行已标记需重盘");
         }
         if (batch.getStatus() == null || batch.getStatus() != 0) {
-            // ⑦-6：finish 与 adjust 之间批次已被封存/废弃——标记"需重盘"后拒绝。
-            // 注：标记与 4101 同事务，生产口径该标记应走 REQUIRES_NEW / no-rollback
-            // 落库；此处以 mapper 直写表达语义，单元测试按交互断言。
-            diffMapper.setRemark(diffId, REMARK_RECHECK);
+            // finish 与 adjust 之间批次已被封存/废弃——标记"需重盘"后拒绝。
+            remarkService.markRecheck(diffId);
             throw new BizException(4101, "批次已不在库（封存/废弃），差异行已标记需重盘");
         }
         BigDecimal diffQty = diff.getDiffQty();

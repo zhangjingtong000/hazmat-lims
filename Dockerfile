@@ -3,11 +3,11 @@
 #   构建：docker build -t hazmat-management:1.0.0 .
 #          （构建前须已产出 server/target/hazmat-management-1.0.0.jar 与
 #            server/src/main/resources/static/ 前端产物）
-#   运行：docker run -d --name hazmat -p 8081:8081 \
+#   运行：docker run -d --name hazmat -p 8080:8080 \
 #            -e APP_TOKEN_SECRET="$(openssl rand -hex 32)" \
 #            -e DEEPSEEK_API_KEY="<your-api-key>" \
 #            -v hazmat-data:/app/data hazmat-management:1.0.0
-#   探针：GET /health（curl -fsS http://localhost:8081/health）
+#   探针：GET /health（curl -fsS http://localhost:8080/health）
 #   说明：镜像内为 H2 文件库（数据卷 /app/data）；改用 MySQL 时传
 #        -e SPRING_PROFILES_ACTIVE=mysql 及 MYSQL_* 环境变量（见 README「多环境配置」）
 # ═══════════════════════════════════════════════════════════════════════════
@@ -29,7 +29,7 @@ COPY server/target/hazmat-management-1.0.0.jar /app/app.jar
 
 # 数据卷：H2 文件库目录（备份脚本对同一目录做快照）
 VOLUME ["/app/data"]
-EXPOSE 8081
+EXPOSE 8080
 
 # 容器内以非 root 运行
 RUN useradd -r -u 10001 hazmat && mkdir -p /app/data /app/logs && chown -R hazmat:hazmat /app
@@ -37,7 +37,7 @@ USER hazmat
 
 ENV JAVA_OPTS="-Xms256m -Xmx512m -Dfile.encoding=UTF-8" \
     SPRING_PROFILES_ACTIVE="" \
-    SERVER_PORT=8081
+    SERVER_PORT=8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -fsS "http://localhost:${SERVER_PORT}/health" || exit 1

@@ -9,6 +9,7 @@ import com.qingyan.hazmat.hazmat.mapper.ChemCheckMapper;
 import com.qingyan.hazmat.hazmat.mapper.ChemInfoMapper;
 import com.qingyan.hazmat.hazmat.mapper.PurchaseReqMapper;
 import com.qingyan.hazmat.hazmat.service.ApprovalChainService;
+import com.qingyan.hazmat.hazmat.service.CheckRemarkService;
 import com.qingyan.hazmat.hazmat.service.CheckService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * 账物盘点单测：双人制单 4201 + 结单（盘点人身份 4105 / book 快照 / 平与不平判定 /
- * 不改库存）+ 调账（权限 4105 / 已调账 4101 / 批次封存"需重盘" ⑦-6 / 盘盈盘亏
+ * 不改库存）+ 调账（权限 4105 / 已调账 4101 / 批次封存"需重盘" / 盘盈盘亏
  * 增量修正与台账同步 / 余量不足 4101）。
  * 约定：盘点人一=301、盘点人二=302、第三人=399、调账员=305；盘点单 id=1、差异行 id=11。
  */
@@ -48,6 +49,7 @@ class CheckServiceTest {
     private ChemCheckDiffMapper diffMapper;
     private ChemInfoMapper chemMapper;
     private PurchaseReqMapper reqMapper;
+    private CheckRemarkService remarkService;
     private CheckService service;
 
     @BeforeEach
@@ -56,7 +58,9 @@ class CheckServiceTest {
         diffMapper = Mockito.mock(ChemCheckDiffMapper.class);
         chemMapper = Mockito.mock(ChemInfoMapper.class);
         reqMapper = Mockito.mock(PurchaseReqMapper.class);
-        service = new CheckService(checkMapper, diffMapper, chemMapper, reqMapper, new ApprovalChainService());
+        remarkService = Mockito.mock(CheckRemarkService.class);
+        service = new CheckService(checkMapper, diffMapper, chemMapper, reqMapper,
+                new ApprovalChainService(), remarkService);
     }
 
     private ChemCheck doing() {
@@ -192,10 +196,10 @@ class CheckServiceTest {
     void adjust_批次已被封存_标记需重盘并拒绝() {
         when(reqMapper.countPerm(anyLong(), any())).thenReturn(1);
         when(diffMapper.selectById(DIFF_ID)).thenReturn(bookedDiff("-1"));
-        when(chemMapper.selectBatch(BATCH_ID)).thenReturn(batch(3, "2")); // ⑦-6：finish 后被惰性封存
+        when(chemMapper.selectBatch(BATCH_ID)).thenReturn(batch(3, "2")); // finish 后被惰性封存
         assertEquals(4101, assertThrows(BizException.class,
                 () -> service.adjust(CHECK_ID, DIFF_ID, ADJUSTER)).getCode());
-        verify(diffMapper).setRemark(DIFF_ID, "需重盘");
+        verify(remarkService).markRecheck(DIFF_ID);
         verify(chemMapper, never()).deductBatch(anyLong(), any());
     }
 
