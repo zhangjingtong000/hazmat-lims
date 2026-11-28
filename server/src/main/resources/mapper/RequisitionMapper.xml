@@ -18,7 +18,7 @@
         SELECT COUNT(*) FROM requisition WHERE code LIKE CONCAT(#{dayPrefix}, '%')
     </select>
 
-    <!-- 关联申购超领对账（C3）：已出库 2 + 已归还/核销关闭 4 的领用均占用申购量 -->
+    <!-- 关联申购超领对账：已出库 2 + 已归还/核销关闭 4 的领用均占用申购量 -->
     <select id="sumQtyByReq" resultType="java.math.BigDecimal">
         SELECT COALESCE(SUM(qty), 0) FROM requisition
         WHERE req_id = #{reqId} AND status IN (2, 4)
@@ -41,7 +41,7 @@
         WHERE id = #{id} AND status = 1
     </update>
 
-    <!-- 计数器条件更新（N-2/4602）：affected=0 即累计归还超领用量（或单据已不在出库态） -->
+    <!-- 计数器条件更新（4602）：affected=0 即累计归还超领用量（或单据已不在出库态） -->
     <update id="incrReturnQty">
         UPDATE requisition SET return_qty = return_qty + #{qty}
         WHERE id = #{id} AND status = 2 AND return_qty + #{qty} &lt;= qty
@@ -53,7 +53,7 @@
         WHERE id = #{id} AND status = 2 AND return_qty &gt;= qty
     </update>
 
-    <!-- 核销（⑦-2）：仅已出库 2 且申请人本人，comment 校验在服务层 -->
+    <!-- 核销：仅已出库 2 且申请人本人，comment 校验在服务层 -->
     <update id="close">
         UPDATE requisition SET status = 4
         WHERE id = #{id} AND status = 2 AND applicant_id = #{applicantId}

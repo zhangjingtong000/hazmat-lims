@@ -23,18 +23,18 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 领用/归还（R5 FEFO 核心）：提交→导师签→复核签→FEFO 跨批次出库→归还回库→核销/改派。
- * 状态机（C2/N-5）：关联已批申购或 category=0 → 1 待复核；非关联且 category≥1 → 0 待导师；
+ * 领用/归还（FEFO 核心）：提交→导师签→复核签→FEFO 跨批次出库→归还回库→核销/改派。
+ * 状态机：关联已批申购或 category=0 → 1 待复核；非关联且 category≥1 → 0 待导师；
  * 0→1→2 已出库，任一签驳回→3 终态；归还闭环 2→4（Σ归还≥领用自动 / 核销 close）。
- * 守卫纪律：台账封存拒领 4504（V5-1）；批次条件扣减 affected=0 换批、全败 4501（R4）；
- * 改派幂等条件更新 ⑦-4（防双回加幻影余量）；归还超量对账条件更新 4602（N-2）。
+ * 守卫纪律：台账封存拒领 4504；批次条件扣减 affected=0 换批、全败 4501；
+ * 改派幂等条件更新（防双回加幻影余量）；归还超量对账条件更新 4602。
  */
 @Service
 public class RequisitionService {
 
     /** 双签/改派/归还确认共用权限（任意持权人可审模式） */
     public static final String PERM_COUNTERSIGN = "hzm:stockin:countersign";
-    /** 导师节点权限键（与申购链同键，R1 指定制+角色校验 N-6） */
+    /** 导师节点权限键（与申购链同键，指定导师 + 角色校验） */
     public static final String PERM_AUDIT_ADVISOR = "hzm:purchase:audit-advisor";
     /** 学院级权限键（归还确认的第二选择） */
     public static final String PERM_AUDIT_COLLEGE = "hzm:purchase:audit-college";
@@ -71,7 +71,7 @@ public class RequisitionService {
         return prefix + String.format("%03d", seq);
     }
 
-    /** 提交领用（N-5 起点分支在此定档）：校验台账在管、剧毒单次上限、关联申购双校验+超领。 */
+    /** 提交领用（起点分支在此定档）：校验台账在管、剧毒单次上限、关联申购双校验+超领。 */
     @Transactional
     public Requisition submit(Long chemId, BigDecimal qty, long applicantId, Long reqId,
                               LocalDate expectReturn, String purpose, String experiment) {
@@ -89,7 +89,7 @@ public class RequisitionService {
             throw new BizException(4701, "超过剧毒单次领用上限");
         }
         if (reqId != null) {
-            // V5-6 关联引用双校验：①已批申购 ②CAS 与台账匹配
+            // 关联引用双校验：①已批申购 ②CAS 与台账匹配
             PurchaseReq purchase = purchaseReqMapper.selectById(reqId);
             if (purchase == null || purchase.getStatus() == null || purchase.getStatus() != 2) {
                 throw new BizException(4404, "关联申购单不是已批状态");
@@ -97,13 +97,13 @@ public class RequisitionService {
             if (!Objects.equals(purchase.getCasNo(), info.getCasNo())) {
                 throw new BizException(4404, "关联申购 CAS 与台账不匹配");
             }
-            // C3 超领：Σ(该申购下 status IN(2,4) 领用)+本次 ≤ 申购 qty
+            // 超领：Σ(该申购下 status IN(2,4) 领用)+本次 ≤ 申购 qty
             BigDecimal used = requisitionMapper.sumQtyByReq(reqId);
             if (used.add(qty).compareTo(purchase.getQty()) > 0) {
                 throw new BizException(4403, "关联申购剩余可领量不足");
             }
         }
-        // N-5 初始态分支：关联已批申购或普通化学品 → 直接待复核；非关联且 category≥1 → 待导师
+        // 初始态分支：关联已批申购或普通化学品 → 直接待复核；非关联且 category≥1 → 待导师
         boolean needAdvisor = reqId == null && info.getCategory() != null && info.getCategory() >= 1;
         Requisition req = new Requisition();
         req.setCode(nextCode());
@@ -120,7 +120,7 @@ public class RequisitionService {
         return req;
     }
 
-    /** 导师签（仅 0 待导师，N-6）：回避+角色校验；通过 0→1，驳回→3 终态。 */
+    /** 导师签（仅 0 待导师）：回避 + 角色校验；通过 0→1，驳回→3 终态。 */
     @Transactional
     public void advisor(long id, long userId, boolean approve, String comment) {
         Requisition req = mustGet(id);
@@ -172,7 +172,7 @@ public class RequisitionService {
         allocateFefo(req, checkerId);
     }
 
-    /** FEFO 出库（R5）：Σ余量预检→条件扣减逐批（affected=0 换批）→明细落库→台账同步→1→2。 */
+    /** FEFO 出库：Σ余量预检→条件扣减逐批（affected=0 换批）→明细落库→台账同步→1→2。 */
     private void allocateFefo(Requisition req, long checkerId) {
         List<ChemBatch> batches = chemInfoMapper.selectFefoBatches(req.getChemicalId());
         BigDecimal need = req.getQty();
@@ -189,7 +189,7 @@ public class RequisitionService {
                 break;
             }
             BigDecimal take = need.min(batch.getQtyLeft());
-            // 条件扣减：并发余量被抢 affected=0 → 换下一批重试（R4 治本修法）
+            // 条件扣减：并发余量被抢 affected=0 → 换下一批重试（治本修法）
             if (chemInfoMapper.deductBatch(batch.getId(), take) == 0) {
                 continue;
             }
@@ -214,7 +214,7 @@ public class RequisitionService {
         }
     }
 
-    /** 改派（V6-4/⑦-4）：明细行条件更新幂等→回加原批→扣新批；等量换批台账不动。 */
+    /** 改派：明细行条件更新幂等→回加原批→扣新批；等量换批台账不动。 */
     @Transactional
     public void dispatch(long id, long originalBatchId, long newBatchId, long userId) {
         if (purchaseReqMapper.countPerm(userId, PERM_COUNTERSIGN) == 0) {
@@ -295,7 +295,7 @@ public class RequisitionService {
             throw new BizException(4202, "确认人须持安全员或学院角色");
         }
         Requisition req = mustGet(ret.getReqId());
-        // 超量守卫（N-2 条件更新）：return_qty+:qty ≤ qty 且 status=2，affected=0 即超还/已关闭
+        // 超量守卫（条件更新）：return_qty+:qty ≤ qty 且 status=2，affected=0 即超还/已关闭
         if (requisitionMapper.incrReturnQty(ret.getReqId(), ret.getQty()) == 0) {
             throw new BizException(4602, "累计归还超领用量（或领用单已关闭）");
         }
@@ -310,14 +310,14 @@ public class RequisitionService {
         if (stockReturnMapper.confirm(returnId, confirmerId) == 0) {
             throw new BizException(4101, "归还单状态已变化，请刷新");
         }
-        // 足额才关单（部分归还不触发——⑦-2 关闭语义，避免空更新）
+        // 足额才关单（部分归还不触发——关闭语义，避免空更新）
         java.math.BigDecimal after = req.getReturnQty().add(ret.getQty());
         if (after.compareTo(req.getQty()) >= 0) {
             requisitionMapper.complete(ret.getReqId());
         }
     }
 
-    /** 归还拒绝（N-3）：仅 0 待确认→2，拒因必填。权限由控制器 return:reject 按钮级承担。 */
+    /** 归还拒绝：仅 0 待确认→2，拒因必填。权限由控制器 return:reject 按钮级承担。 */
     @Transactional
     public void rejectReturn(long returnId, String comment, long userId) {
         StockReturn ret = stockReturnMapper.selectById(returnId);
@@ -335,7 +335,7 @@ public class RequisitionService {
         }
     }
 
-    /** 核销（⑦-2）：仅已出库 2 且申请人本人，comment 必填；条件更新 2→4 封堵"永挂 2"盲区。 */
+    /** 核销：仅已出库 2 且申请人本人，comment 必填；条件更新 2→4 封堵"永挂 2"盲区。 */
     @Transactional
     public void close(long id, long userId, String comment) {
         if (comment == null || comment.isBlank()) {

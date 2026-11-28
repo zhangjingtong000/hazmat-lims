@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
 /**
- * 服务端参数校验工具（A4 后端侧 / E6）：写接口不信任前端，一律在此类做
+ * 服务端参数校验工具（后端侧）：写接口不信任前端，一律在此类做
  * 必填、长度、数值范围与格式校验。失败统一错误码 {@link #CODE_INVALID}（4001），
  * 与业务守卫码（41xx/42xx/43xx/44xx/45xx/46xx）区分：前者是"请求不合法"，
  * 后者是"业务规则不允许"。
@@ -108,7 +108,7 @@ public final class Validators {
     }
 
     /**
-     * E3 口令策略：长度 8~64，且须包含「小写字母 / 大写字母 / 数字 / 符号」中至少两类；
+     * 口令策略：长度 8~64，且须包含「小写字母 / 大写字母 / 数字 / 符号」中至少两类；
      * 不得与用户名相同。仅在设置/重置口令时校验（登录不校验，避免历史口令无法登录）。
      */
     public static void password(String value, String username) {

@@ -90,7 +90,7 @@
             <el-option v-for="p in approvedPurchases.filter(p => p.casNo === selectedChem?.casNo)"
               :key="p.id" :label="`${p.code} ${p.chemicalName}（CAS 一致 · 剩余可领 ${remain(p)}）`" :value="p.id" />
           </el-select>
-          <div class="cell-sub">非关联且分类≥危化品时须导师先签（起点分支 N-5）。</div>
+          <div class="cell-sub">非关联且分类≥危化品时须导师先签。</div>
         </el-form-item>
         <el-form-item label="用途" prop="purpose" :rules="R.requiredLen(200, '用途')"><el-input v-model="form.purpose" /></el-form-item>
         <el-form-item label="实验项目" prop="experiment" :rules="R.maxLen(100, '实验项目')"><el-input v-model="form.experiment" /></el-form-item>

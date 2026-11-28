@@ -304,7 +304,7 @@ async function doConfirmReturn(row) {
 }
 
 async function doRejectReturn(row) {
-  const { value } = await ElMessageBox.prompt('拒绝原因必填（N-3 留痕）', '归还拒绝', {
+  const { value } = await ElMessageBox.prompt('拒绝原因必填（留痕）', '归还拒绝', {
     inputPattern: /.+/, inputErrorMessage: '拒绝原因必填', type: 'warning'
   })
   await rejectReturn(row.id, value)

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 入库与"五双"双签（§5）：列表 / 提交（普通一步双签、剧毒仅首签）/ 剧毒第二签 / 拒收。
+ * 入库与"五双"双签：列表 / 提交（普通一步双签、剧毒仅首签）/ 剧毒第二签 / 拒收。
  * 双签/角色/落账守卫全在 StockInService；接收人恒为当前登录人。
  */
 @RestController
@@ -51,7 +51,7 @@ public class StockInController {
     @PostMapping
     @RequirePerm("hzm:stockin:add")
     public Result<StockIn> add(@RequestBody StockIn form, HttpServletRequest request) {
-        // A4 后端强校验：批号/数量/柜位/复核人必填；新化学品建档草稿同步校验
+        // 后端强校验：批号/数量/柜位/复核人必填；新化学品建档草稿同步校验
         Validators.requiredLen(form.getLotNo(), 32, "批号");
         Validators.positive(form.getQty(), "数量");
         Validators.notNull(form.getCabinetId(), "存放柜位");

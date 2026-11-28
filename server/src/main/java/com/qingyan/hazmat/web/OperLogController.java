@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * G1 操作日志查询页（管理员）。
+ * 操作日志查询页（管理员）。
  */
 @RestController
 @RequestMapping("/system/operlog")

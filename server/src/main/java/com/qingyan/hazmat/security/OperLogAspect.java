@@ -14,7 +14,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.Map;
 
 /**
- * G1 操作日志：切面环绕全部业务 Controller 的写操作。
+ * 操作日志：切面环绕全部业务 Controller 的写操作。
  * 成败以"是否抛出业务/运行时异常"判定——原来用拦截器读 HTTP status，
  * 但全局异常处理器统一返回 HTTP 200 + body code，导致失败全被记成"成功"。
  * 401/403 在拦截器层短路（不进入切面），由 LoginInterceptor.reject 单独留痕。

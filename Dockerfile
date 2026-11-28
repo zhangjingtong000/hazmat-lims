@@ -9,7 +9,7 @@
 #            -v hazmat-data:/app/data hazmat-management:1.0.0
 #   探针：GET /health（curl -fsS http://localhost:8080/health）
 #   说明：镜像内为 H2 文件库（数据卷 /app/data）；改用 MySQL 时传
-#        -e SPRING_PROFILES_ACTIVE=mysql 及 MYSQL_* 环境变量（见 README「多环境配置」）
+#        -e SPRING_PROFILES_ACTIVE=mysql 及 MYSQL_* 环境变量（见 README「MySQL 8」）
 # ═══════════════════════════════════════════════════════════════════════════
 FROM eclipse-temurin:17-jre
 

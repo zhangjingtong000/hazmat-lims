@@ -34,7 +34,7 @@ export const returnReq = (id, data) => http.post(`/chem/req/${id}/return`, data)
 export const listReqReturns = id => http.get(`/chem/req/${id}/returns`)
 export const confirmReturn = rid => http.post(`/chem/req/return/${rid}/confirm`)
 export const rejectReturn = (rid, comment) => http.post(`/chem/req/return/${rid}/reject`, { comment })
-/** 核销关闭（§5 ⑦-2：POST /chem/req/{id}/close——服务层已实现；注意核验后端控制器是否暴露） */
+/** 核销关闭（POST /chem/req/{id}/close——服务层已实现；注意核验后端控制器是否暴露） */
 export const closeReq = (id, comment) => http.post(`/chem/req/${id}/close`, { comment })
 
 /* ═══ 批次 BatchController（/chem/batch） ═══ */

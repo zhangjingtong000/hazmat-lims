@@ -1,5 +1,5 @@
 /**
- * D1 数据导出（Excel）：与 asset 同源做法——前端 SheetJS（xlsx，已在 package.json）在浏览器侧
+ * 数据导出（Excel）：与其他导出同源做法——前端 SheetJS（xlsx，已在 package.json）在浏览器侧
  * 生成 .xlsx，后端只提供分页 list 接口，不新增后端依赖、不占服务器内存。
  *
  * 关键约定：

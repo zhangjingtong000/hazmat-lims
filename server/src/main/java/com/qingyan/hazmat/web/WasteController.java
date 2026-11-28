@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 废弃物处置（§5）：建单（强制批次+⑦-11 错批守卫在服务层）/ 列表 / 详情 / 审批。
+ * 废弃物处置：建单（强制批次+错批守卫在服务层）/ 列表 / 详情 / 审批。
  * 审批完成合规校验（控制器侧）：disposal_target 必填 4101；剧毒(4)/易制毒(2)/易制爆(3)
- *voucher_no 必填 4101——先落库（updateCompletion）再走服务层审批销账。
+ * voucher_no 必填 4101——先落库（updateCompletion）再走服务层审批销账。
  */
 @RestController
 @RequestMapping("/chem/waste")
@@ -48,7 +48,7 @@ public class WasteController {
     @PostMapping
     @RequirePerm("hzm:waste:submit")
     public Result<WasteDisposal> add(@RequestBody WasteDisposal body, HttpServletRequest request) {
-        // A4 后端强校验：化学品/批次强制（⑦-11 错批守卫在服务层），数量为正、文本限长
+        // 后端强校验：化学品/批次强制（错批守卫在服务层），数量为正、文本限长
         Validators.notNull(body.getChemicalId(), "化学品");
         Validators.notNull(body.getBatchId(), "批次");
         Validators.range(body.getType(), 1, 3, "处置类型");

@@ -1,7 +1,7 @@
 package com.qingyan.hazmat.common.ai;
 
 /**
- * 防御性 AI 层（defensive-ai-spec §3）：LLM 客户端 SPI。
+ * 防御性 AI 层：LLM 客户端 SPI。
  * 单轮补全（system+user → content），实现方保证"失败即降级"——任何未配置/网络/解析问题
  * 一律返回 null，绝不向业务层抛异常（铁律 2：AI 通道不引入新业务错误码）。
  */

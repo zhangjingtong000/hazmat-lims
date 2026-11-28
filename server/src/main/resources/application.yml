@@ -33,10 +33,10 @@ logging:
 
 app:
   version: 1.0.0
-  # E12 配置外置：默认值为开发/演示口令，生产以环境变量 APP_TOKEN_SECRET 覆盖（不落仓库）
+  # 配置外置：默认值为开发/演示口令，生产以环境变量 APP_TOKEN_SECRET 覆盖（不落仓库）
   token-secret: "${APP_TOKEN_SECRET:}"
   token-hours: 12
-  ai:                                # 防御性 AI 层（defensive-ai-spec §3）：无 key 自动降级，不报错
+  ai:                                # 防御性 AI 层：无 key 自动降级，不报错
     enabled: true
     base-url: https://api.deepseek.com
     model: deepseek-flash
@@ -44,16 +44,16 @@ app:
     max-tokens: 1024
     timeout-seconds: 30
   security:
-    login-attempt:                   # E5 登录防爆破（内存滑动窗口，单实例）
+    login-attempt:                   # 登录防爆破（内存滑动窗口，单实例）
       max-failures: 5
       window-minutes: 10
       lock-minutes: 10
-    rate-limit:                      # E5/G4 接口限流（写接口 + 登录，GET 不计数）
+    rate-limit:                      # 接口限流（写接口 + 登录，GET 不计数）
       # 登录阈值取 120/min/IP：防爆破主防线是 login-attempt（5 次失败/10 分钟锁定），
       # 本项负责挡住"高频脚本刷登录"；自动化验收（E2E 全量约 100 次登录/3 分钟）需留出余量
       login-per-minute: 120
       write-per-minute: 300
-  schedule:                          # G5 定时任务（效期 / 已批超期未入库扫描）
+  schedule:                          # 定时任务（效期 / 已批超期未入库扫描）
     enabled: true
     initial-delay-ms: 90000
     scan-interval-ms: 1800000

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 申购流转（§5）：保存/提交/审批/作废 + 列表（mine/todo）+ 详情（含审批链）。
+ * 申购流转：保存/提交/审批/作废 + 列表（mine/todo）+ 详情（含审批链）。
  * 审批权限节点键随单据当前级动态解析（purchase:audit-<节点键>），拦截器静态注解
  * 无法表达，故在本控制器内以 countPerm 动态校验（不过者 4105，与服务层同码）。
  */
@@ -48,7 +48,7 @@ public class PurchaseController {
     @PostMapping
     @RequirePerm("hzm:purchase:submit")
     public Result<PurchaseReq> save(@RequestBody PurchaseReq req, HttpServletRequest request) {
-        // A4 后端强校验：与前端「新建申购单」rules 对应
+        // 后端强校验：与前端「新建申购单」rules 对应
         Validators.requiredLen(req.getChemicalName(), 100, "化学品名");
         Validators.casNo(req.getCasNo());
         Validators.range(req.getCategory(), 0, 4, "分类");
@@ -145,7 +145,7 @@ public class PurchaseController {
         return Result.ok();
     }
 
-    /** 作废（⑦-1）：草稿或已批且未入库、仅申请人本人（条件更新四守卫合一在服务层）。 */
+    /** 作废：草稿或已批且未入库、仅申请人本人（条件更新四守卫合一在服务层）。 */
     @PostMapping("/{id}/void")
     @RequirePerm("hzm:purchase:submit")
     public Result<Void> voidReq(@PathVariable Long id, HttpServletRequest request) {

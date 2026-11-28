@@ -40,7 +40,7 @@
       <div class="page-card sec-card">
         <div class="card-head">
           <span class="page-title">差异明细（chem_check_diff）</span>
-          <span class="cell-sub">调账=增量修正：qty_left=qty_left+diff（≥0、批次在库守卫⑦-6），台账同步±</span>
+          <span class="cell-sub">调账=增量修正：qty_left=qty_left+diff（≥0、批次在库守卫），台账同步±</span>
         </div>
         <el-table :data="diffs" size="small" stripe>
           <el-table-column label="批次" min-width="140">

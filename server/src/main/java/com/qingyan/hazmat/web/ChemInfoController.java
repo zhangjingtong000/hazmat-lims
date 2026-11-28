@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 台账管理（§5）：列表分页 / 建档（CAS 查重命中→挂既有台账不阻断）/ 维护 / 逻辑删除 /
+ * 台账管理：列表分页 / 建档（CAS 查重命中→挂既有台账不阻断）/ 维护 / 逻辑删除 /
  * 档案聚合（台账+FEFO 批次）/ CAS 查重。业务守卫全在 ChemInfoService。
  */
 @RestController
@@ -71,7 +71,7 @@ public class ChemInfoController {
         return Result.ok();
     }
 
-    /** A4 后端强校验：与前端 el-form rules 一一对应（必填/长度/数值范围/格式）。 */
+    /** 后端强校验：与前端 el-form rules 一一对应（必填/长度/数值范围/格式）。 */
     private void validate(ChemInfo info, boolean creating) {
         if (creating) {
             Validators.requiredLen(info.getName(), 100, "品名");

@@ -19,7 +19,7 @@
         WHERE biz_type = #{bizType} AND biz_id = #{bizId} AND seq = #{seq}
     </select>
 
-    <!-- ── 我的已办聚合（G4 审批人视角，审批中心第五页签数据源）──
+    <!-- ── 我的已办聚合（审批人视角，审批中心第五页签数据源）──
          biz_type 口径（schema.sql）：1申购 / 2废弃 —— approval_record approver 视角查询；
          领用双签不走 approval_record（advisor_id/checker_id 落在 requisition 主单），以 UNION 并入：
          导师签=advisor_time 非空、复核签=status IN(2,4) 已出库/关闭（驳回态未留签批人，系统既有口径）。

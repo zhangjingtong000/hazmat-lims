@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 领用/归还（§5）：提交 / 列表（mine/todo）/ 详情（FEFO 明细）/ 导师签 / 复核签 /
+ * 领用/归还：提交 / 列表（mine/todo）/ 详情（FEFO 明细）/ 导师签 / 复核签 /
  * 改派 / 归还 / 归还确认/拒绝。FEFO/双签/超领/对账守卫全在 RequisitionService。
  */
 @RestController
@@ -49,11 +49,11 @@ public class RequisitionController {
         this.stockReturnMapper = stockReturnMapper;
     }
 
-    /** 提交领用（N-5 起点定档在服务层；req_id 关联已批申购双校验 4403/4404）。 */
+    /** 提交领用（起点定档在服务层；req_id 关联已批申购双校验 4403/4404）。 */
     @PostMapping
     @RequirePerm("hzm:req:submit")
     public Result<Requisition> submit(@RequestBody Requisition body, HttpServletRequest request) {
-        // A4 后端强校验：化学品/数量/用途必填，文本长度与列宽一致
+        // 后端强校验：化学品/数量/用途必填，文本长度与列宽一致
         Validators.notNull(body.getChemicalId(), "化学品");
         Validators.positive(body.getQty(), "数量");
         Validators.requiredLen(body.getPurpose(), 200, "用途");
@@ -118,7 +118,7 @@ public class RequisitionController {
         return Result.ok();
     }
 
-    /** 改派（⑦-4）：body {originalBatchId, newBatchId}——回加原批/扣新批，幂等条件更新在服务层。 */
+    /** 改派：body {originalBatchId, newBatchId}——回加原批/扣新批，幂等条件更新在服务层。 */
     @PutMapping("/{id}/dispatch")
     @RequirePerm("hzm:req:dispatch")
     public Result<Void> dispatch(@PathVariable Long id, @RequestBody Map<String, Object> body,
@@ -157,7 +157,7 @@ public class RequisitionController {
         return Result.ok();
     }
 
-    /** 归还拒绝（N-3）：comment 必填（服务层守卫）。 */
+    /** 归还拒绝：comment 必填（服务层守卫）。 */
     @PostMapping("/return/{rid}/reject")
     @RequirePerm("hzm:return:reject")
     public Result<Void> rejectReturn(@PathVariable Long rid, @RequestBody Map<String, String> body,
@@ -187,7 +187,7 @@ public class RequisitionController {
         throw new BizException(4101, message);
     }
 
-    /** 核销关闭（⑦-2）：材料用尽、Σ归还<qty 时 2→4。 */
+    /** 核销关闭：材料用尽、Σ归还<qty 时 2→4。 */
     @org.springframework.web.bind.annotation.PostMapping("/{id}/close")
     @com.qingyan.hazmat.security.RequirePerm("hzm:req:submit")
     public com.qingyan.hazmat.common.Result<Void> close(@PathVariable Long id,

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * E5 登录防爆破单测：达阈值锁定、锁定期间拒绝、成功清零、窗口过期释放。
+ * 登录防爆破单测：达阈值锁定、锁定期间拒绝、成功清零、窗口过期释放。
  * 构造用 5 次/10 分钟窗口 + 10 分钟锁定（与 application.yml 默认一致）。
  */
 class LoginAttemptServiceTest {

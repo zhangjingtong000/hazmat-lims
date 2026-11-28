@@ -25,7 +25,7 @@
 
   <dependencies>
     <!--
-      版本化 schema 迁移（B8/H5）说明：本项目采用**自研轻量迁移**而非 flyway/liquibase 依赖——
+      版本化 schema 迁移说明：本项目采用**自研轻量迁移**而非 flyway/liquibase 依赖——
       脚本沿用 Flyway 的 V{n}__{描述}.sql 命名约定放在 classpath:db/migration/，
       由 com.qingyan.hazmat.db.SchemaMigrationRunner 在启动时按文件名序执行未应用脚本，
       schema_version 表登记 version/script/checksum（幂等、失败即阻断启动）。

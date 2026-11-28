@@ -3,7 +3,7 @@ import { login as apiLogin, me as apiMe, changePassword as apiPwd } from '../api
 
 /**
  * 会话仓库：token 持久化 localStorage，用户档案（roles/perms）内存保存。
- * 按钮级权限判定 hasPerm() 与 §5 25 键种子标识一一对应。
+ * 按钮级权限判定 hasPerm() 与 25 键种子标识一一对应。
  */
 export const auth = reactive({
   token: sessionStorage.getItem('token') || '',

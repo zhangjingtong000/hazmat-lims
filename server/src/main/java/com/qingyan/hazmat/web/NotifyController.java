@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 站内信（G6）：我的消息分页 / 未读数 / 单条已读 / 全部已读。
+ * 站内信：我的消息分页 / 未读数 / 单条已读 / 全部已读。
  * 仅需登录——消息按 target_user_id 归属，天然隔离（含全员广播）。
  */
 @RestController

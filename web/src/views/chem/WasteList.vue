@@ -77,7 +77,7 @@
           <el-select v-model="form.chemicalId" filterable style="width: 100%" @change="onChemChange">
             <el-option v-for="c in chems" :key="c.id" :label="`${c.code} ${c.name}（${categoryOf(c.category).name}）`" :value="c.id" />
           </el-select>
-          <div class="cell-sub">一张处置单一种化学品一个批次（⑦-11 错批守卫 4603）。</div>
+          <div class="cell-sub">一张处置单一种化学品一个批次（错批守卫 4603）。</div>
         </el-form-item>
         <el-form-item label="批次" prop="batchId" :rules="R.requiredPick('批次')">
           <el-select v-model="form.batchId" style="width: 100%">
@@ -172,7 +172,7 @@ async function onChemChange() {
 async function save() {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
-    ElMessage.warning('化学品与批次均强制（批次强制，v5 N-1②）')
+    ElMessage.warning('化学品与批次均强制')
     return
   }
   if (!typeThree.value && !form.qty) {
@@ -196,7 +196,7 @@ async function save() {
 
 const selectedCategory = () => chems.value.find(c => c.id === form.chemicalId)?.category ?? 0
 
-/** D1 导出：遵循当前筛选条件（keyword/status） */
+/** 导出：遵循当前筛选条件（keyword/status） */
 async function doExport() {
   exporting.value = true
   try {

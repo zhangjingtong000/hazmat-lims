@@ -15,7 +15,7 @@
 #      产物：backups/mysql-<db>-YYYYmmdd-HHMMSS.sql.gz
 #   ③ 保留策略：--keep N 保留最近 N 份（默认 14），更早的自动清理。
 #
-#   恢复步骤见 docs/backup-recovery.md（含演练记录）
+#   恢复：停服后用同一台机器的 Java/tar 解开备份包，把 data 目录放回 server/ 下再启服（详见 README「部署」）
 # ═══════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 
@@ -117,4 +117,4 @@ fi
 
 echo "[backup] 当前备份目录："
 ls -lht "$OUT" 2>/dev/null | head -n 8
-echo "[backup] 恢复步骤见 docs/backup-recovery.md"
+echo "[backup] 恢复：解开备份包，把 data 目录放回 server/ 下再启服（详见 README「部署」）"

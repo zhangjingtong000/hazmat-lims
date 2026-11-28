@@ -154,7 +154,7 @@
       </template>
     </el-dialog>
 
-    <!-- A7 批量导入（模板 + 逐行校验 + 失败明细） -->
+    <!-- 批量导入（模板 + 逐行校验 + 失败明细） -->
     <el-dialog v-model="importVisible" title="批量导入台账（CSV 模板）" width="760px" top="6vh">
       <el-steps :active="importResult ? 3 : (importRowsData.length ? 2 : 1)" simple class="import-steps">
         <el-step title="下载模板" />
@@ -219,7 +219,7 @@ const saving = ref(false)
 const formRef = ref(null)
 const form = reactive({})
 
-/* ═══ A7 批量导入状态 ═══ */
+/* ═══ 批量导入状态 ═══ */
 const importVisible = ref(false)
 const importing = ref(false)
 const importRowsData = ref([])
@@ -335,7 +335,7 @@ function openForm(row) {
   nextTick(() => formRef.value?.clearValidate())
 }
 
-/** D1 导出：按当前筛选条件分页拉取后生成 Excel（文件名含业务名与日期） */
+/** 导出：按当前筛选条件分页拉取后生成 Excel（文件名含业务名与日期） */
 async function doExport() {
   exporting.value = true
   try {

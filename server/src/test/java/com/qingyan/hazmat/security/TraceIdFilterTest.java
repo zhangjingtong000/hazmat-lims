@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** F3 请求追踪：短码生成口径（8 位十六进制、弱随机不重复即可）。 */
+/** 请求追踪：短码生成口径（8 位十六进制、弱随机不重复即可）。 */
 class TraceIdFilterTest {
 
     @Test

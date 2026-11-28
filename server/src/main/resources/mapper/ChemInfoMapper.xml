@@ -85,7 +85,7 @@
         WHERE id = #{id} AND cabinet_id = #{fromCabinetId} AND status = 0
     </update>
 
-    <!-- R3 禁配数据源：按批次实际柜位 JOIN（台账默认柜位不参与判定） -->
+    <!-- 禁配数据源：按批次实际柜位 JOIN（台账默认柜位不参与判定） -->
     <select id="selectCabinetMates" resultType="com.qingyan.hazmat.hazmat.entity.ChemInfo">
         SELECT DISTINCT ci.*
         FROM chem_batch b

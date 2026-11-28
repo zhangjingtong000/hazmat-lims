@@ -20,7 +20,7 @@ public interface ApprovalRecordMapper {
                                @Param("seq") int seq);
 
     /**
-     * 我的已办（G4）：按签批人聚合最近审批结论——approval_record（biz_type 1申购/2废弃）
+     * 我的已办：按签批人聚合最近审批结论——approval_record（biz_type 1申购/2废弃）
      * UNION requisition 导师/复核双签（领用双签落主单字段，非 approval_record），
      * 联表带单据编号与品名；按时间倒序取前 limit 条。
      */

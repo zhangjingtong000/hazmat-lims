@@ -240,4 +240,4 @@ curl -s -X POST http://localhost:8080/auth/login -H 'Content-Type: application/j
 - **CSV 导入**：模板下载与文件解析均在浏览器端完成（`web/src/utils/importCsv.js`，零依赖），
   逐行校验通过后**复用 `POST /chem/info`** 提交，故无"导入接口"；
   失败行明细在前端汇总展示，服务端仅以 4001/业务码原样回传原因。
-- **站内信**：路由 `/system/notify/*` 见 §13；未读数由顶栏每 30s 轮询（`GET /system/notify/unread-count`）。
+- **站内信**：路由 `/system/notify/*` 见第 13 节；未读数由顶栏每 30s 轮询（`GET /system/notify/unread-count`）。

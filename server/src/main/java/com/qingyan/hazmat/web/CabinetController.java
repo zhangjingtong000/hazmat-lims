@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 存放柜（§5）：列表 / 新增 / 维护。柜内剧毒批次守卫（§2 storage_cabinet 注）：
+ * 存放柜：列表 / 新增 / 维护。柜内剧毒批次守卫（见 storage_cabinet 表注释）：
  * 柜内有在库剧毒（category=4）批次时禁改柜类型、禁取消双锁（4101）。
  */
 @RestController
@@ -83,7 +83,7 @@ public class CabinetController {
         return Result.ok();
     }
 
-    /** 柜内在库批次是否含剧毒（category=4；R3 数据源复用 selectCabinetMates）。 */
+    /** 柜内在库批次是否含剧毒（category=4；数据源复用 selectCabinetMates）。 */
     private boolean hasLethalBatch(Long cabinetId) {
         List<ChemInfo> mates = chemInfoMapper.selectCabinetMates(cabinetId);
         return mates.stream().anyMatch(m -> m.getCategory() != null && m.getCategory() == 4);

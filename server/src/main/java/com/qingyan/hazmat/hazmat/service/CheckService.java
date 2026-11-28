@@ -79,7 +79,7 @@ public class CheckService {
 
     /**
      * 结单：逐条差异按批次当前余量快照 book_qty 记录，diff=actual-book；
-     * 仅记录不修账（评审③：finish/adjust 两段分离），diff_count=非零差异数，
+     * 仅记录不修账（finish/adjust 两段分离），diff_count=非零差异数，
      * result=全平?1:2，条件更新锁定"盘点中"防重复结单。
      */
     @Transactional
@@ -158,7 +158,7 @@ public class CheckService {
                 throw new BizException(4101, "批次回加失败");
             }
         } else {
-            // 盘亏：条件扣减，余量不足即拒（并发口径与 R4 同族）
+            // 盘亏：条件扣减，余量不足即拒（并发口径与出库扣减同族）
             if (chemMapper.deductBatch(batch.getId(), diffQty.abs()) == 0) {
                 throw new BizException(4101, "批次余量不足以调减");
             }

@@ -12,7 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * E13 安全响应头：由应用统一注入，生产可再叠加网关策略。
+ * 安全响应头：由应用统一注入，生产可再叠加网关策略。
  *
  * <ul>
  *   <li>{@code X-Content-Type-Options: nosniff}——禁 MIME 嗅探</li>

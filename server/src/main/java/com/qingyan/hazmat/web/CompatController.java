@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 禁配规则（§5）：列表 / 成对新增（禁自反，服务层 4101）/ 成对删除（XML 双向删）。
+ * 禁配规则：列表 / 成对新增（禁自反，服务层 4101）/ 成对删除（XML 双向删）。
  */
 @RestController
 @RequestMapping("/chem/compat")
@@ -40,7 +40,7 @@ public class CompatController {
     @PostMapping
     @RequirePerm("hzm:compat:maint")
     public Result<Void> add(@RequestBody CompatRule rule) {
-        // A4 后端强校验：组别必填、限长；同组自配与重复由服务层守卫
+        // 后端强校验：组别必填、限长；同组自配与重复由服务层守卫
         com.qingyan.hazmat.common.Validators.maxLen(rule.getGroupA(), 8, "组 A");
         com.qingyan.hazmat.common.Validators.maxLen(rule.getGroupB(), 8, "组 B");
         com.qingyan.hazmat.common.Validators.maxLen(rule.getNote(), 200, "说明");

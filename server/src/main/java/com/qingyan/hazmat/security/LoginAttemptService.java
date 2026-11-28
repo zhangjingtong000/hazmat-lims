@@ -13,12 +13,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * E5 登录防爆破：内存滑动窗口计数（键 = IP + 用户名）。
+ * 登录防爆破：内存滑动窗口计数（键 = IP + 用户名）。
  * 窗口内失败达阈值即锁定，锁定期间拒绝该键的一切登录尝试并给出稳定错误码 4291；
  * 任一成功登录立即清零（正常用户误输不会累积到锁定）。
  *
  * <p>单实例内存实现（当前部署形态为单 jar），多实例需换 Redis 计数——已在
- * docs/backup-recovery.md 与 README 的能力边界中说明。计数为有界清理，避免长期运行内存增长。
+ * 见 README「实现约定」的能力边界。计数为有界清理，避免长期运行内存增长。
  */
 @Component
 public class LoginAttemptService {

@@ -43,7 +43,7 @@ public class AuthService {
         return buildProfile(user);
     }
 
-    /** H3 自助修改密码：校验旧密码后落新散列；口令复杂度走统一策略（E3） */
+    /** 自助修改密码：校验旧密码后落新散列；口令复杂度走统一策略 */
     public void changePassword(long uid, String oldPassword, String newPassword) {
         if (oldPassword == null || oldPassword.isBlank()) {
             throw new BizException(400, "旧密码不能为空");

@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-/** 台账 + 批次持久层（全部条件原子更新，守恒口径见 R4）。 */
+/** 台账 + 批次持久层（全部条件原子更新，守恒口径见 README「账物守恒」）。 */
 public interface ChemInfoMapper {
 
     int insert(ChemInfo info);
@@ -49,7 +49,7 @@ public interface ChemInfoMapper {
     int moveBatch(@Param("id") Long id, @Param("cabinetId") Long cabinetId,
                   @Param("fromCabinetId") Long fromCabinetId);
 
-    /** 柜内在库批次的化学品相容组（禁配判定数据源，JOIN 批次实际柜位——R3 批次口径）。 */
+    /** 柜内在库批次的化学品相容组（禁配判定数据源，JOIN 批次实际柜位——批次口径）。 */
     List<ChemInfo> selectCabinetMates(@Param("cabinetId") Long cabinetId);
 
     /** 某化学品 Σ 在库批次余量（守恒断言用）。 */

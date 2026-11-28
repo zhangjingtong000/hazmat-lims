@@ -160,7 +160,7 @@ onMounted(async () => {
   userOptions('hzm:check:do').then(d => { users.value = d || [] }).catch(() => {})
 })
 
-/** D1 导出：遵循当前结果筛选条件 */
+/** 导出：遵循当前结果筛选条件 */
 async function doExport() {
   exporting.value = true
   try {

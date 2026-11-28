@@ -35,7 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * R5 FEFO 领用/归还单测：起点分支 N-5 + 导师签/复核双签 + FEFO 跨批次拆分 + 改派幂等 + 归还闭环 + 核销。
+ * FEFO 领用/归还单测：起点分支 + 导师签/复核双签 + FEFO 跨批次拆分 + 改派幂等 + 归还闭环 + 核销。
  * 约定：申请人=100、导师=201、双签安全员=202、学院=203；领用单 id=1、化学品台账 id=5、
  * 批次 11/12/13；关联申购 id=9（CAS 151-50-8，qty=5）。
  */
@@ -163,7 +163,7 @@ class RequisitionServiceTest {
                 () -> service.submit(5L, new BigDecimal("2"), APPLICANT, 9L, null, null, null)).getCode());
     }
 
-    // ── submit：N-5 起点分支 ──
+    // ── submit：起点分支 ──
     @Test
     void submit_关联已批申购落待复核() {
         when(chemInfoMapper.selectById(5L)).thenReturn(chem(4, 0));
@@ -363,7 +363,7 @@ class RequisitionServiceTest {
         row.setQty(new BigDecimal("3"));
         when(requisitionBatchMapper.selectRow(1L, 11L)).thenReturn(row);
         when(chemInfoMapper.selectBatch(13L)).thenReturn(batch(13L, new BigDecimal("5")));
-        // ⑦-4：affected=0 → 已被并发改派（防双回加幻影余量）
+        // affected=0 → 已被并发改派（防双回加幻影余量）
         when(requisitionBatchMapper.reassign(1L, 11L, 13L)).thenReturn(0);
         assertEquals(4101, assertThrows(BizException.class,
                 () -> service.dispatch(1L, 11L, 13L, CHECKER)).getCode());
@@ -534,7 +534,7 @@ class RequisitionServiceTest {
         verify(stockReturnMapper).reject(7L, "包装破损拒收");
     }
 
-    // ── close：⑦-2 核销 ──
+    // ── close：核销 ──
     @Test
     void close_缺说明拒绝() {
         assertEquals(4101, assertThrows(BizException.class,

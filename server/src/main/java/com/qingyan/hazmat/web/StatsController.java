@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 统计看板/大屏（§5）：dashboard 四类预警仅聚合计数（⑦-9 不含单据明细——越权读封堵）；
+ * 统计看板/大屏：dashboard 四类预警仅聚合计数（不含单据明细——越权读封堵）；
  * ledger 按分类分组库存聚合；screen 大屏三区数据（分类分布/批次状态分布/处置统计）。
  * 已批超 7 天未入库预警排除已作废（status=5 天然不在 status=2 口径内）。
  */

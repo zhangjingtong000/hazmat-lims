@@ -3,7 +3,7 @@ package com.qingyan.hazmat.system.entity;
 import java.time.LocalDateTime;
 
 /**
- * 站内信（定向通知，G6）：与 notice（公告板，全员维护）区分——本表由系统事件写入，
+ * 站内信（定向通知）：与 notice（公告板，全员维护）区分——本表由系统事件写入，
  * target_user_id 为目标用户（NULL=全员广播），read_flag 标记已读。
  */
 public class NotifyMessage {

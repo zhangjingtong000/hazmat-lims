@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 防御性 AI 层降级链单测（defensive-ai-spec §3/§4）：缓存命中不出网、无 key 数据问题走
+ * 防御性 AI 层降级链单测：缓存命中不出网、无 key 数据问题走
  * 关键词降级、LLM 输出白名单外字段过滤、语料检索 top-k 命中。全部不真连外网。
  */
 class AiAskServiceTest {

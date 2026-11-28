@@ -220,7 +220,7 @@ test('R06 导师节点指定制：wang 无导师签权限被拦，节点仅 zhan
   const li = await apiToken(ACCOUNTS.li)
   let rid = null
   try {
-    // chen 无关联申购领用 category=1 台账（盐酸 id=8）→ N-5 定档：待导师
+    // chen 无关联申购领用 category=1 台账（盐酸 id=8）→ 初始态为"待导师"
     const created = await api(chen, 'POST', '/chem/req', {
       chemicalId: 8, qty: 1, purpose: 'R06 导师节点探针'
     })

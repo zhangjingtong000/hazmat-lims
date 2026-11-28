@@ -151,7 +151,7 @@ async function doMove() {
   }
 }
 
-/** D1 导出：遵循当前化学品筛选条件 */
+/** 导出：遵循当前化学品筛选条件 */
 async function doExport() {
   exporting.value = true
   try {

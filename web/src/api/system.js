@@ -34,7 +34,7 @@ export const addDict = data => http.post('/system/dict', data)
 export const editDict = data => http.put('/system/dict', data)
 export const setDictStatus = (id, status) => http.post(`/system/dict/${id}/status`, { status })
 
-/* ═══ 站内信 NotifyController（/system/notify，G6 主动通知） ═══ */
+/* ═══ 站内信 NotifyController（/system/notify，主动通知） ═══ */
 export const listNotify = params => http.get('/system/notify/list', { params })
 export const notifyUnread = () => http.get('/system/notify/unread-count')
 export const readNotify = id => http.post(`/system/notify/${id}/read`)

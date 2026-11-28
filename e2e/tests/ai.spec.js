@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { ADMIN, login, attachWatchers } from './_shared.js'
 
-/* 防御性 AI 层套件（ai）：智能查询动线 —— 无 key 环境验证缓存回放/降级链（defensive-ai-spec §5 S3） */
+/* 防御性 AI 层套件（ai）：智能查询动线 —— 无 key 环境验证缓存回放/降级链 */
 
 test('E-AI01 智能查询：种子问题命中缓存回放并返回正确台账结果', async ({ page }) => {
   const issues = []

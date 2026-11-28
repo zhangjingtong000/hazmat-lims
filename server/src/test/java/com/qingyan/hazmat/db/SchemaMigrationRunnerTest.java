@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * B8 轻量迁移单测：脚本切分（忽略注释、按分号、过滤空语句）与校验和稳定性。
+ * 轻量迁移单测：脚本切分（忽略注释、按分号、过滤空语句）与校验和稳定性。
  * 迁移的正确性依赖"逐语句执行 + 已应用版本跳过"，故切分口径必须可验证。
  */
 class SchemaMigrationRunnerTest {

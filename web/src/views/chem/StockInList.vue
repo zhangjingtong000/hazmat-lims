@@ -265,7 +265,7 @@ onMounted(async () => {
   userOptions('hzm:stockin:countersign').then(d => { users.value = d || [] }).catch(() => {})
 })
 
-/** D1 导出：遵循当前关键词/状态筛选条件 */
+/** 导出：遵循当前关键词/状态筛选条件 */
 async function doExport() {
   exporting.value = true
   try {

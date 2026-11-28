@@ -76,7 +76,7 @@
       </nav>
 
       <div class="nav-right">
-        <!-- G6 站内信：未读徽标 + 消息面板（定时任务/业务事件主动触达） -->
+        <!-- 站内信：未读徽标 + 消息面板（定时任务/业务事件主动触达） -->
         <el-popover placement="bottom-end" :width="360" trigger="click" @show="loadNotify">
           <template #reference>
             <el-badge :value="notifyUnread" :hidden="!notifyUnread" :max="99" class="notify-badge">
@@ -185,7 +185,7 @@ const pwdVisible = ref(false)
 const pwdForm = reactive({ oldPassword: '', newPassword: '' })
 const pwdFormRef = ref(null)
 
-/* ═══ G6 站内信（未读轮询 + 面板） ═══ */
+/* ═══ 站内信（未读轮询 + 面板） ═══ */
 const notifyUnread = ref(0)
 const notifies = ref([])
 

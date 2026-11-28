@@ -20,7 +20,7 @@
         SELECT COUNT(*) FROM requisition_batch WHERE req_id = #{reqId}
     </select>
 
-    <!-- 改派幂等守卫（⑦-4）：WHERE 锁 req_id+原批，affected=0 即已被并发改派 -->
+    <!-- 改派幂等守卫：WHERE 锁 req_id+原批，affected=0 即已被并发改派 -->
     <update id="reassign">
         UPDATE requisition_batch SET batch_id = #{newBatchId}, qty = qty
         WHERE req_id = #{reqId} AND batch_id = #{originalBatchId}

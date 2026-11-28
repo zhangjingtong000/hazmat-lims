@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 智能查询服务：防御性 AI 层降级链（defensive-ai-spec §3，铁律 1/2/3）。
+ * 智能查询服务：防御性 AI 层降级链。
  *
  * <pre>
  * ① 缓存命中（question 归一化 sha256 → ai_qa_cache）→ 按存储条件重放（数据仍来自 DB）
@@ -33,7 +33,7 @@ public class AiAskService {
 
     private static final Logger log = LoggerFactory.getLogger(AiAskService.class);
 
-    /** 超长输入直接按关键词降级（spec §3 安全：防提示注入长载荷）。 */
+    /** 超长输入直接按关键词降级（安全：防提示注入长载荷）。 */
     static final int MAX_QUESTION_LEN = 200;
     private static final int LIST_LIMIT = 20;
     private static final int REG_TOP_K = 5;

@@ -1,5 +1,5 @@
 /**
- * 全局枚举字典（口径对齐 §2 表结构与 §4 错误码表）
+ * 全局枚举字典（口径对齐表结构与错误码表）
  */
 
 /** 化学品分类：0普通/1危化品/2易制毒/3易制爆/4剧毒 —— 缩写与分类色对齐 GHS 规范 */
@@ -87,7 +87,7 @@ export const PICTOGRAMS = [
   { value: 'GENERAL', label: 'GENERAL 一般' }
 ]
 
-/** 相容组选项（§7 种子：ORG/FLAM/AC/AK/OX/RD/GEN + YZ/YB 场景） */
+/** 相容组选项（种子：ORG/FLAM/AC/AK/OX/RD/GEN + YZ/YB 场景） */
 export const COMPAT_GROUPS = ['ORG', 'FLAM', 'AC', 'AK', 'OX', 'RD', 'GEN']
 
 /** 分页辅助 */

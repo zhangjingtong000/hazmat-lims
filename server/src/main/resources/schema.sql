@@ -1,7 +1,7 @@
 -- hazmat-lims / hazmat-management 数据库 schema（H2 MODE=MySQL 兼容，MySQL profile 同源）
 -- 22 表：化学品域 14 + 系统域 8。幂等建表（IF NOT EXISTS），演示数据由应用层注入。
 -- 注意：CREATE INDEX IF NOT EXISTS 是 H2 语法；MySQL 8 导入前需按 README 的转换脚本去掉 IF NOT EXISTS。
--- 规格：详细设计 v8 §2（冻结版）。守卫/约束在服务层（守卫失败码见错误码表），DB 层仅做
+-- 守卫/约束在服务层（守卫失败码见错误码表），DB 层仅做
 -- 结构性约束（唯一键防并发重复审批等）。
 
 -- ══════════ 化学品域（14 表）══════════
@@ -300,7 +300,7 @@ CREATE TABLE IF NOT EXISTS dict_item (
 );
 CREATE INDEX IF NOT EXISTS idx_dict_type ON dict_item(dict_type, status);
 
--- ══════════ AI 层（防御性 AI 层标准模块，defensive-ai-spec §3）══════════
+-- ══════════ AI 层（防御性 AI 层标准模块）══════════
 
 -- AI 问答缓存（question 归一化 sha256 唯一；intent_json 存解析出的查询条件可回放；
 -- source=ai|keyword 标记生成通道。种子演示问答由 DemoDataRunner 注入，无 key 首启可演示）

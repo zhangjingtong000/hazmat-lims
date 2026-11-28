@@ -24,7 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * G6 站内信服务单测：投递去重（同一业务对象窗口期内不重复）、超长标题截断、
+ * 站内信服务单测：投递去重（同一业务对象窗口期内不重复）、超长标题截断、
  * 已读回执越权/不存在拒绝、未读数与分页口径。
  */
 class NotifyServiceTest {

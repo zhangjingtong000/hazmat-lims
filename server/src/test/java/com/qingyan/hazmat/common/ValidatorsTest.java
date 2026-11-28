@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A4/E3/E6 参数校验单测：必填/长度/数值范围/CAS 格式/口令策略。
+ * 参数校验单测：必填/长度/数值范围/CAS 格式/口令策略。
  * 口径：失败一律 4001（前端按"请求不合法"提示），不与 41xx 业务守卫混用。
  */
 class ValidatorsTest {

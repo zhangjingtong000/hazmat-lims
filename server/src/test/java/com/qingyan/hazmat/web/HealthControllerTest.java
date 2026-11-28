@@ -16,7 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * F5 健康检查单测：db 探活成功/失败决定整体 status；语料为空与 AI 未配置均降级但不报错。
+ * 健康检查单测：db 探活成功/失败决定整体 status；语料为空与 AI 未配置均降级但不报错。
  */
 class HealthControllerTest {
 

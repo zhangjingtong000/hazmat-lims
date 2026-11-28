@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * 申购流转（R1）：草稿→提交→分级审批→已批→入库关闭；作废为旁路终态。
+ * 申购流转：草稿→提交→分级审批→已批→入库关闭；作废为旁路终态。
  * 审批链配置集中在 ApprovalChainService；全部状态推进用条件更新（affected=0 即拒），
  * 重复审批由 DB 层 UNIQUE(biz_type,biz_id,seq) 兜底（应用层转 4103）。
  */
@@ -145,7 +145,7 @@ public class PurchaseFlowService {
         }
     }
 
-    /** 作废（⑦-1）：草稿或已批且未入库，仅申请人；条件更新四守卫合一。 */
+    /** 作废：草稿或已批且未入库，仅申请人；条件更新四守卫合一。 */
     @Transactional
     public void voidReq(long id, long userId) {
         if (reqMapper.voidReq(id, userId, BigDecimal.ZERO) == 0) {

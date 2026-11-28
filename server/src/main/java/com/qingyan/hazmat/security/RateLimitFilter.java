@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * E5/G4 接口限流：轻量进程内滑动窗口（零依赖，不引 Sentinel/Redis）。
+ * 接口限流：轻量进程内滑动窗口（零依赖，不引 Sentinel/Redis）。
  *
  * <p>覆盖两类高风险入口：① 登录 {@code POST /auth/login}；② 一切写接口（POST/PUT/DELETE）。
  * 只读 GET 不计数，避免看板轮询误伤。超限返回 HTTP 429 + 业务码 4290（语义码，前端按

@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-/** 站内信 Mapper（G6）：定向通知的写入与已读回执。 */
+/** 站内信 Mapper：定向通知的写入与已读回执。 */
 public interface NotifyMessageMapper {
 
     int insert(NotifyMessage message);

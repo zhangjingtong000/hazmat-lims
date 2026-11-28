@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 智能查询（防御性 AI 层，defensive-ai-spec §3）：POST /ai/ask {question}。
+ * 智能查询（防御性 AI 层）：POST /ai/ask {question}。
  * 响应 data：{intent, conditions, summary, rows, total, regs, source}——rows 与台账列表接口同构，
  * regs 为命中的法规条文；source=ai|cache|keyword（前端徽标：智能解析/缓存回放/关键词匹配）。
  * 权限键 hzm:ai:ask（25 键体系扩展第 26 键，授予全部演示角色——防御位人人可演示）。

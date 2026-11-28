@@ -27,7 +27,7 @@ public interface PurchaseReqMapper {
     /** 驳回：审批中→驳回终态（条件更新）。 */
     int reject(@Param("id") Long id, @Param("currentSeq") Integer currentSeq);
 
-    /** 作废（V6-1/⑦-1）：草稿或已批且未入库，仅申请人本人（条件更新四守卫合一）。 */
+    /** 作废：草稿或已批且未入库，仅申请人本人（条件更新四守卫合一）。 */
     int voidReq(@Param("id") Long id, @Param("applicantId") Long applicantId,
                 @Param("inQty") BigDecimal inQty);
 

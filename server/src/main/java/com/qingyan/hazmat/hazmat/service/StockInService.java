@@ -15,11 +15,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 入库与"五双"双签（R2）+ 落账。
+ * 入库与"五双"双签 + 落账。
  * 普通化学品/category≤3：提交即一步双签（receiver≠checker、至少一人持会签权限），状态直达 1 并落账；
  * category=4 剧毒：提交仅 receiver 首签（status=0），第二签独立 countersign（须持学院审批权限）后才落账。
  * 拒收为终态旁路：仅 status=0 可拒、拒因必填、不建批次不回写申购。
- * 落账（一步 submit 与剧毒 countersign 共用）：R3 禁配校验 → 建批次 → 台账加库存 →
+ * 落账（一步 submit 与剧毒 countersign 共用）：禁配校验 → 建批次 → 台账加库存 →
  * 关联申购条件回写（4402）→ stock_in 条件置 1。全部状态推进用条件更新（affected=0 即 4101）。
  */
 @Service
@@ -27,7 +27,7 @@ public class StockInService {
 
     /** 会签权限键（收发双方至少一人持有，4202）。 */
     public static final String PERM_COUNTERSIGN = "hzm:stockin:countersign";
-    /** 剧毒第二签角色键：复用学院审批权限（R2 v3）。 */
+    /** 剧毒第二签角色键：复用学院审批权限。 */
     public static final String PERM_COLLEGE_AUDIT = "hzm:purchase:audit-college";
 
     /** 台账编码类别码（category 0-4 → PT/WH/YZ/YB/JD）。 */
@@ -194,7 +194,7 @@ public class StockInService {
                 chem.setDeleted(0);
             }
         }
-        // R3 预检：建台账/落账前先看目标柜是否已有禁配品（落账时还会再校验一次，防单据在途期间柜况变化）
+        // 预检：建台账/落账前先看目标柜是否已有禁配品（落账时还会再校验一次，防单据在途期间柜况变化）
         compatService.checkCabinet(form.getCabinetId(), chem);
         if (chem.getId() == null) {
             chem.setCode(nextChemCode(chem.getCategory()));
@@ -203,7 +203,7 @@ public class StockInService {
         return chem;
     }
 
-    /** 落账（一步 submit 与剧毒 countersign 共用）：①R3 ③建批次 ④台账加库存 ⑤申购条件回写 ⑥条件置 1。 */
+    /** 落账（一步 submit 与剧毒 countersign 共用）：建批次 → 台账加库存 → 申购条件回写 → 条件置 1。 */
     private void settle(StockIn rec, long checkerId) {
         ChemInfo chem = chemMapper.selectById(rec.getChemicalId());
         compatService.checkCabinet(rec.getCabinetId(), chem);

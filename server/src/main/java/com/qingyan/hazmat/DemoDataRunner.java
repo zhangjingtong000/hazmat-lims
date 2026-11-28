@@ -39,8 +39,8 @@ import java.util.List;
 
 /**
  * 首次启动注入演示数据（幂等：sys_user 已有数据则跳过）。
- * 密码一律 PasswordUtil 散列；种子规格=详细设计 §7（13 种化学品真实 CAS、柜位 6、
- * 禁配 6 对、25 按钮键菜单树、四级审批全链单据、临期/过期批次）。
+ * 密码一律 PasswordUtil 散列；种子规格：13 种化学品真实 CAS、柜位 6、
+ * 禁配 6 对、25 按钮键菜单树、四级审批全链单据、临期/过期批次。
  * admin 口令可被环境变量 {@code APP_SEED_ADMIN_PASSWORD} 覆盖；未设置时回落到演示默认值，
  * 并在启动日志打印一行不含口令本身的警告。
  */
@@ -172,7 +172,7 @@ public class DemoDataRunner implements ApplicationRunner {
         bindPerms(rCollege, "hzm:purchase:audit-college", "hzm:waste:audit", "hzm:stockin:countersign");
         bindPerms(rCampus, "hzm:purchase:audit-campus", "hzm:waste:audit", "hzm:stockin:countersign");
         bindPerms(rApplicant, "hzm:purchase:submit", "hzm:req:submit", "hzm:req:return");
-        // 防御位 hzm:ai:ask 授予全部演示角色（人人可演示，spec §3）
+        // 防御位 hzm:ai:ask 授予全部演示角色（人人可演示）
         bindPerms(rAdvisor, "hzm:ai:ask");
         bindPerms(rSafety, "hzm:ai:ask");
         bindPerms(rCollege, "hzm:ai:ask");
@@ -250,7 +250,7 @@ public class DemoDataRunner implements ApplicationRunner {
         seedAiQa();
     }
 
-    /** 防御性 AI 层种子问答（spec §3：无 key 首启即可演示缓存回放）。summary 数字与上方种子数据逐一核对。 */
+    /** 防御性 AI 层种子问答（无 key 首启即可演示缓存回放）。summary 数字与上方种子数据逐一核对。 */
     private void seedAiQa() {
         // ── 数据通道（7 条，数字与 13 种化学品/6 柜位/81 瓶总现存等种子事实一致）──
         qa("现在台账里一共有多少种化学品？",

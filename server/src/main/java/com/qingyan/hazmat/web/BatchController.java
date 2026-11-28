@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 批次（§5）：列表（chemicalId 可空）/ 移柜（显式触发 R3 禁配校验，冲突 4301）。
+ * 批次：列表（chemicalId 可空）/ 移柜（显式触发禁配校验，冲突 4301）。
  * 移柜条件更新（WHERE cabinet_id=原柜 AND status=0）affected=0 即拒 4101。
  */
 @RestController
@@ -45,7 +45,7 @@ public class BatchController {
         return Result.ok(TableData.of(records, chemInfoMapper.countBatchPage(chemicalId)));
     }
 
-    /** 移柜：body {cabinetId}——先 R3 禁配校验（冲突 4301），再条件更新（仅在库批次、锁原柜）。 */
+    /** 移柜：body {cabinetId}——先禁配校验（冲突 4301），再条件更新（仅在库批次、锁原柜）。 */
     @PutMapping("/{id}/cabinet")
     @RequirePerm("hzm:batch:move")
     public Result<Void> moveCabinet(@PathVariable Long id, @RequestBody Map<String, Object> body) {
@@ -68,7 +68,7 @@ public class BatchController {
         if (chem == null) {
             throw new BizException(4101, "化学品台账不存在");
         }
-        compatService.checkCabinet(target, chem); // R3：冲突 4301
+        compatService.checkCabinet(target, chem); // 冲突 4301
         if (chemInfoMapper.moveBatch(id, target, batch.getCabinetId()) == 0) {
             throw new BizException(4101, "批次状态或柜位已变化，请刷新");
         }

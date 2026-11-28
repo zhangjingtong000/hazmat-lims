@@ -9,7 +9,7 @@ import {
  * 柜位：HG-A01=1 酸柜 / HG-G01=6 通用柜（GEN 相容组无禁配对，安全）。
  *
  * 实现口径备注（写用例前已核对后端源码）：
- *  - 领用 N-5 分支：category=0 或关联已批申购 → 提交即"待复核"（无导师节点）；category≥1 非关联才"待导师签"。
+ *  - 领用分支：category=0 或关联已批申购 → 提交即"待复核"（无导师节点）；category≥1 非关联才"待导师签"。
  *  - 复核双签通过即按 FEFO 逐批扣减出库（1→2 已出库/待发放），PUT /chem/req/{id}/dispatch 为改派而非发放。
  *  - 废弃建单 hzm:waste:submit 种子仅 admin 持有（安全员角色未授）→ A13 用 admin 建单、wang（hzm:waste:audit）审批。
  *  - chen/li 等非 admin 无 system:user:list → 申购"导师"/入库"复核人"/盘点"盘点人二"下拉为空（前端 403 静默降级），
@@ -301,7 +301,7 @@ test.describe.serial('hazmat-lims 验收 A01-A16', () => {
     const chenTok = await apiToken(CHEN)
     const liTok = await apiToken(LI)
 
-    // chen UI 新建领用（氯化钠 category=0 → N-5 分支直接"待复核"，无导师节点）
+    // chen UI 新建领用（氯化钠 category=0 → 分支直接"待复核"，无导师节点）
     await loginFresh(page, CHEN)
     await page.goto('/#/chem/requisition')
     await page.getByRole('button', { name: '+ 新建领用' }).click()

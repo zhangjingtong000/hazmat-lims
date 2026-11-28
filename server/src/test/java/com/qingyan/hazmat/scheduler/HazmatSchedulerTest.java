@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * G5 定时任务单测：效期/超期未入库扫描把命中记录投递为站内信（幂等去重由 NotifyService 保证），
+ * 定时任务单测：效期/超期未入库扫描把命中记录投递为站内信（幂等去重由 NotifyService 保证），
  * 且**任何异常都不得抛出**（定时任务失败不能影响主流程）。
  */
 class HazmatSchedulerTest {

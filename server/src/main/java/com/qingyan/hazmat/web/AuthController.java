@@ -34,7 +34,7 @@ public class AuthController {
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String username = body.get("username") == null ? "" : body.get("username").trim();
         String password = body.get("password");
-        // E5 防爆破：IP + 用户名 维度滑动窗口，锁定期间直接拒绝（错误码 4291）
+        // 防爆破：IP + 用户名 维度滑动窗口，锁定期间直接拒绝（错误码 4291）
         String attemptKey = ClientIp.of(request) + '|' + username;
         long locked = loginAttempt.lockedMinutes(attemptKey);
         if (locked > 0) {
@@ -69,7 +69,7 @@ public class AuthController {
         return Result.ok(authService.profile(uid));
     }
 
-    /** H3 自助修改密码（任何登录用户） */
+    /** 自助修改密码（任何登录用户） */
     @PostMapping("/auth/password")
     public Result<Void> changePassword(@RequestBody Map<String, String> body, HttpServletRequest request) {
         long uid = ((Number) request.getAttribute("uid")).longValue();

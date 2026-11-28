@@ -1,5 +1,5 @@
 /**
- * A4 表单校验规则工厂（声明式）——所有 el-form 的 rules 统一由此生成，
+ * 表单校验规则工厂（声明式）——所有 el-form 的 rules 统一由此生成，
  * 与后端 com.qingyan.hazmat.common.Validators 的口径一一对应
  * （必填 / 长度 / 数值范围 / 格式），错误文案与后端保持一致。
  *

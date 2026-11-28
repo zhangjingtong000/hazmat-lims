@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * R3 禁配同存单测：主/次相容组 × 成对规则"有序对"匹配；成对写删。
+ * 禁配同存单测：主/次相容组 × 成对规则"有序对"匹配；成对写删。
  * 规则种子口径：OX-RD / OX-FLAM / AC-AK / AC-FLAM / OX-ORG / AC-ORG。
  */
 class CompatServiceTest {

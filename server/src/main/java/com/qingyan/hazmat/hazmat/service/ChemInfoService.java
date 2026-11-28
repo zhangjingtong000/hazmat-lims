@@ -68,7 +68,7 @@ public class ChemInfoService {
 
     /**
      * 维护：类别守卫 4107——若请求改类别且台账已有批次/存量则拒绝。
-     * 口径裁量：单据引用枚举（§5 ⑦-10：申购 status∈{1,2}、领用∈{0,1,2}、stock_in=0、
+     * 口径裁量：单据引用枚举（申购 status∈{1,2}、领用∈{0,1,2}、stock_in=0、
      * stock_return=0、waste=0）由 mapper 扩展承担，此处简化为"在库批次>0 或 Σ余量>0"
      * 判存（批次是引用的必然后继，有批次即有引用；无批次余量的历史引用不影响类别切换
      * 的编码/审批链语义）。stock_qty/cas_no/code/status 为台账主键性字段，
@@ -93,8 +93,8 @@ public class ChemInfoService {
 
     /**
      * 逻辑删除三条件：①status=2 已清空 ②无在库批次 ③无未完成单据引用。
-     * 口径裁量：③ 引用枚举（申购∈{1,2}/领用∈{0,1,2}/stock_in=0/stock_return=0/
-     * waste=0，⑦-10 定稿）由 mapper 扩展承担（countPendingDocs 类扩展）；
+     * 口径裁量：引用枚举（申购∈{1,2}/领用∈{0,1,2}/stock_in=0/stock_return=0/
+     * waste=0，定稿）由 mapper 扩展承担（countPendingDocs 类扩展）；
      * 此处以"countActiveBatches==0 且 Σ 在库余量=0"为简化口径——批次全部
      * 出库/销账/封存尽才允许删档，在库口径下未完成单据必然还挂着批次。
      */

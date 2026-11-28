@@ -34,7 +34,7 @@ public interface RequisitionMapper {
     /** 归还完毕自动关闭（条件更新：status=2 且 return_qty≥qty）。 */
     int complete(@Param("id") Long id);
 
-    /** 核销关闭（⑦-2）：status=2 且仅申请人本人（条件更新）。 */
+    /** 核销关闭：status=2 且仅申请人本人（条件更新）。 */
     int close(@Param("id") Long id, @Param("applicantId") Long applicantId);
 
     // ── 列表分页 / 待办（控制器层扩展，LEFT JOIN 补化学品名/申请人昵称）──

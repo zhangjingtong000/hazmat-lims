@@ -19,12 +19,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * 废弃物处置（R4 销账侧）：批次匹配守卫（batch.chemical_id==chemical_id，⑦-11——
- * 错批即销错台账）；type=1/2 废液/空瓶=在库批次销账（批次条件扣减 + 台账同事务同步），
+ * 废弃物处置（销账侧）：批次匹配守卫（batch.chemical_id==chemical_id，错批即销错台账）；
+ * type=1/2 废液/空瓶=在库批次销账（批次条件扣减 + 台账同事务同步），
  * type=3 过期整批=仅销批次（wipeBatch：qty_left→0、status 3→2；口径假设"封存时台账已扣"，
  * 故不再动台账）。注意：当前没有把批次置 status=3 的运行时入口（updateBatchStatus 零调用点），
- * 该分支只对演示种子或人工改库的批次生效。审批单级（v3 修订）：category≤1 学院须持 audit-college /
- * category≥2 校级须持 audit-campus（与申购链同轴）；approver≠operator 回避（⑦-8）；
+ * 该分支只对演示种子或人工改库的批次生效。审批单级：category≤1 学院须持 audit-college /
+ * category≥2 校级须持 audit-campus（与申购链同轴）；approver≠operator 回避；
  * 审批结论复用通用审批记录 approval_record（biz_type=2），UNIQUE 兜底转 4103。
  */
 @Service
@@ -59,7 +59,7 @@ public class WasteService {
         return prefix + String.format("%03d", wasteMapper.countToday(prefix) + 1);
     }
 
-    /** 建单：批次一律强制（N-1②，混合废液按化学品拆单——一张处置单一种化学品一个批次）。 */
+    /** 建单：批次一律强制（混合废液按化学品拆单——一张处置单一种化学品一个批次）。 */
     @Transactional
     public WasteDisposal submit(Long chemId, Long batchId, int type, BigDecimal qty, String method, long operatorId) {
         if (chemId == null || batchId == null) {
@@ -69,7 +69,7 @@ public class WasteService {
         if (batch == null) {
             throw new BizException(4101, "批次不存在");
         }
-        // ⑦-11 错批守卫：处置单上的化学品必须就是批次所属化学品（否则错批销错台账）
+        // 错批守卫：处置单上的化学品必须就是批次所属化学品（否则错批销错台账）
         if (!chemId.equals(batch.getChemicalId())) {
             throw new BizException(4603, "处置批次与化学品不匹配");
         }
@@ -116,7 +116,7 @@ public class WasteService {
         if (!approve && (comment == null || comment.isBlank())) {
             throw new BizException(4101, "驳回必须填写意见");
         }
-        // ⑦-8 回避：处置人不得审批本人的处置单
+        // 回避：处置人不得审批本人的处置单
         if (wd.getOperatorId() != null && wd.getOperatorId() == approverId) {
             throw new BizException(4104, "处置人不能审批本人的处置单");
         }
@@ -156,7 +156,7 @@ public class WasteService {
         if (wasteMapper.approve(id, approverId) == 0) {
             throw new BizException(4101, "单据状态已变化，请刷新");
         }
-        // 销账（与置已处置同事务，R4 守恒）
+        // 销账（与置已处置同事务，守恒）
         if (wd.getType() != null && wd.getType() == TYPE_EXPIRED) {
             // type=3 过期整批：仅销批次（口径假设封存时台账已扣，故不再动 stock_qty；status=3 目前只能演示种子/人工改库产生）
             if (chemMapper.wipeBatch(wd.getBatchId()) == 0) {

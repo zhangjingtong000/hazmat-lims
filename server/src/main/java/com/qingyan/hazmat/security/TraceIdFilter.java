@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 
 /**
- * F3 请求追踪：为每次请求生成 8 位短码（或沿用上游传入的 X-Trace-Id）写入 MDC，
+ * 请求追踪：为每次请求生成 8 位短码（或沿用上游传入的 X-Trace-Id）写入 MDC，
  * 日志 pattern 通过 {@code [%X{traceId}]} 输出；响应头回写 X-Trace-Id 便于前端/网关对账。
  * 一次请求的所有日志可按 traceId 串起来（审计排查最小闭环）。
  */

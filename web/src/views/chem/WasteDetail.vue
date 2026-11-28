@@ -40,7 +40,7 @@
       <div class="page-card sec-card">
         <div class="card-head">
           <span class="page-title">审批记录（biz_type=2，与申购链同轴单级）</span>
-          <span class="cell-sub">approver≠operator 回避（⑦-8）；层级：普通/危化→学院，易制毒/易制爆/剧毒→校级</span>
+          <span class="cell-sub">approver≠operator 回避；层级：普通/危化→学院，易制毒/易制爆/剧毒→校级</span>
         </div>
         <el-table :data="records" size="small" stripe>
           <el-table-column prop="seq" label="级次" width="60" />
@@ -63,7 +63,7 @@
             <el-input v-model="auditForm.disposalTarget" placeholder="完成时必填（如 委托 XX 固废处理中心）" />
           </el-form-item>
           <el-form-item v-if="needVoucher" label="转移凭证号" prop="voucherNo" :rules="R.maxLen(50, '转移凭证号')">
-            <el-input v-model="auditForm.voucherNo" placeholder="剧毒/易制毒/易制爆完成时必填（N-10）" />
+            <el-input v-model="auditForm.voucherNo" placeholder="剧毒/易制毒/易制爆完成时必填" />
           </el-form-item>
           <el-form-item label="审批意见" prop="comment" :rules="R.maxLen(500, '审批意见')">
             <el-input v-model="auditForm.comment" type="textarea" :rows="2" placeholder="驳回必填" />

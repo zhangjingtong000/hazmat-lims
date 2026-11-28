@@ -3,7 +3,7 @@ package com.qingyan.hazmat.system.entity;
 import java.time.LocalDateTime;
 
 /**
- * G1 操作日志条目。
+ * 操作日志条目。
  */
 public class OperLog {
 

@@ -15,7 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 法规语料加载器 + 关键词/词频 top-k 检索（零新依赖，不引向量库——defensive-ai-spec §3）。
+ * 法规语料加载器 + 关键词/词频 top-k 检索（零新依赖，不引向量库）。
  * 语料打进 jar：classpath:regs/*.json（文件头 // 注释行记录来源 URL 与采集日期，解析前剥离）。
  * 目录为空/文件缺失时语料列表为空（法规通道自动隐藏），不影响其余功能。
  */

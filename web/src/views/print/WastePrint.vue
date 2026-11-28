@@ -45,7 +45,7 @@
         </table>
 
         <!-- 签批栏：经办 + 审批（approval_record biz_type=2，单级同轴） -->
-        <div class="sign-title">签批栏（处置经办 + 审批，⑦-8 回避：处置人不得自审）</div>
+        <div class="sign-title">签批栏（处置经办 + 审批，回避：处置人不得自审）</div>
         <table class="sign-table">
           <tr>
             <th style="width: 130px">环节</th><th>签批人</th><th>意见</th><th style="width: 90px">结果</th><th style="width: 120px">日期</th>

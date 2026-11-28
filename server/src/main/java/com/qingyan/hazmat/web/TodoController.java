@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 审批中心待办（§5）：四类聚合——待审申购（status=1）/ 待签领用（status IN 0,1）/
+ * 审批中心待办：四类聚合——待审申购（status=1）/ 待签领用（status IN 0,1）/
  * 待审废弃（status=0）/ 待确认归还（status=0）。登录即可（前端按 perms 过滤审批按钮；
  * 服务层审批/确认时仍有 4104/4105/4201/权限键精确守卫）。
- * G4 已办：附"我的已办"聚合（approval_record approver 视角 + 领用导师/复核双签，近 20 条）。
+ * 已办：附"我的已办"聚合（approval_record approver 视角 + 领用导师/复核双签，近 20 条）。
  */
 @RestController
 @RequestMapping("/chem/todo")
@@ -45,7 +45,7 @@ public class TodoController {
         this.recordMapper = recordMapper;
     }
 
-    /** 三类待办聚合计数 + 列表（各取近 20 条，按提交时间先后）+ 我的已办（G4）。 */
+    /** 三类待办聚合计数 + 列表（各取近 20 条，按提交时间先后）+ 我的已办。 */
     @GetMapping
     public Result<Map<String, Object>> todo(HttpServletRequest request) {
         long uid = ((Number) request.getAttribute("uid")).longValue();

@@ -14,7 +14,7 @@ import com.qingyan.hazmat.common.BizException;
 import com.qingyan.hazmat.hazmat.service.ApprovalChainService;
 
 /**
- * R1 分级审批链规则的穷举验证：五类化学品 × 链长/链序/边界。
+ * 分级审批链规则的穷举验证：五类化学品 × 链长/链序/边界。
  * 非法路径（未知分类、级次越界）与合法路径同权重覆盖。
  */
 class ApprovalChainServiceTest {

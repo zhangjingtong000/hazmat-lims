@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * F5 健康检查 / 就绪探针（零依赖自研，不引 actuator）。
+ * 健康检查 / 就绪探针（零依赖自研，不引 actuator）。
  *
  * <p>{@code GET /health} 返回 {@code {status, version, time, checks:{db, regs, ai}}}：
  * <ul>

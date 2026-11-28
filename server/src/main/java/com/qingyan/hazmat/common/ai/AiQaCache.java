@@ -2,7 +2,7 @@ package com.qingyan.hazmat.common.ai;
 
 import java.time.LocalDateTime;
 
-/** AI 问答缓存（ai_qa_cache 表，defensive-ai-spec §3）。 */
+/** AI 问答缓存（ai_qa_cache 表）。 */
 public class AiQaCache {
 
     private Long id;

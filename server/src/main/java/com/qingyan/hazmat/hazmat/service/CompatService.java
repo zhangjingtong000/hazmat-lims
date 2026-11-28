@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * R3 禁配同存（按批次实际柜位）：柜内在库批次的化学品主/次相容组与 compat_rule
+ * 禁配同存（按批次实际柜位）：柜内在库批次的化学品主/次相容组与 compat_rule
  * "有序对"集合成对匹配，任一组合命中即 4301（报冲突品名+规则 note）。
  * 规则成对写删（a,b 与 b,a 两行，UNIQUE(group_a,group_b) 禁自反）。
  */

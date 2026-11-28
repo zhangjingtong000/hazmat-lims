@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 站内信服务（G6 主动通知通道）：业务事件与定时扫描统一经此投递，
+ * 站内信服务（主动通知通道）：业务事件与定时扫描统一经此投递，
  * 前端顶栏铃铛按未读数轮询（GET /system/notify/unread-count）。
  *
  * <p>投递幂等：同一业务对象在窗口期内只投一次（countRecent 守卫），

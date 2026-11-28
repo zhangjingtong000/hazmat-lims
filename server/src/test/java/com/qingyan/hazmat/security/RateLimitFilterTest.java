@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * E5/G4 接口限流单测：只读 GET 不计数；登录与写接口各自窗口；超限返回 HTTP 429 + 业务码 4290。
+ * 接口限流单测：只读 GET 不计数；登录与写接口各自窗口；超限返回 HTTP 429 + 业务码 4290。
  */
 class RateLimitFilterTest {
 

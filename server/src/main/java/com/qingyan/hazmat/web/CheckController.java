@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 账物盘点（§5）：制单（双人）/ 结单（差异记录不改库存）/ 调账（增量修正）/
+ * 账物盘点：制单（双人）/ 结单（差异记录不改库存）/ 调账（增量修正）/
  * 列表 / 详情（差异明细）。双人制/仅本单盘点人/批次守卫全在 CheckService。
  */
 @RestController
@@ -42,7 +42,7 @@ public class CheckController {
     @PostMapping
     @RequirePerm("hzm:check:do")
     public Result<ChemCheck> add(@RequestBody ChemCheck body, HttpServletRequest request) {
-        // A4 后端强校验：盘点人二必填（双人制），范围分类可空但取值受限
+        // 后端强校验：盘点人二必填（双人制），范围分类可空但取值受限
         Validators.notNull(body.getCheckerTwoId(), "盘点人二");
         if (body.getScopeCategory() != null) {
             Validators.range(body.getScopeCategory(), 0, 4, "盘点范围分类");
@@ -69,7 +69,7 @@ public class CheckController {
         return Result.ok();
     }
 
-    /** 调账（增量修正：diff>0 回加 / diff<0 条件扣减，台账同步；批次 status=0 守卫⑦-6）。 */
+    /** 调账（增量修正：diff>0 回加 / diff<0 条件扣减，台账同步；批次 status=0 守卫）。 */
     @PostMapping("/{id}/adjust")
     @RequirePerm("hzm:check:adjust")
     public Result<Void> adjust(@PathVariable Long id, @RequestBody Map<String, Object> body,

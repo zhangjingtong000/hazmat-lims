@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 废弃物处置单测：错批守卫 4603（⑦-11）+ type 分支状态守卫 + 单级审批
+ * 废弃物处置单测：错批守卫 4603+ type 分支状态守卫 + 单级审批
  * （回避 4104 / 层级权限 4105 / 重复 4103）+ 双路销账（type=1/2 批次+台账同扣、
  * type=3 仅销批次双扣守卫）。
  * 约定：处置人=100、学院审批人=203、校级审批人=204；化学品台账 id=10、批次 id=20。
@@ -93,7 +93,7 @@ class WasteServiceTest {
     @Test
     void submit_批次与化学品不匹配拒绝() {
         when(chemMapper.selectBatch(BATCH_ID)).thenReturn(batch(0, "2"));
-        // 批次属于另一化学品（⑦-11：错批即销错台账）
+        // 批次属于另一化学品（错批即销错台账）
         assertEquals(4603, assertThrows(BizException.class,
                 () -> service.submit(99L, BATCH_ID, 1, new BigDecimal("1"), "焚烧", OPERATOR)).getCode());
     }

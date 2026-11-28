@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * R2 入库双签 + 落账单测：一步双签（普通/category≤3）、剧毒两步签、拒收终态、全部守卫。
+ * 入库双签 + 落账单测：一步双签（普通/category≤3）、剧毒两步签、拒收终态、全部守卫。
  * 约定：收货人=100、复核人=201、第二签人=203（学院）；台账 id=5、入库单 id=9、申购单 id=7。
  */
 class StockInServiceTest {
