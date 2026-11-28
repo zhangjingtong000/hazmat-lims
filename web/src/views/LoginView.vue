@@ -141,7 +141,7 @@
           </button>
         </form>
 
-        <!-- 今日值班表：点姓名即代入该岗位账号（密码统一 123456） -->
+        <!-- 今日值班表：点姓名只代入该岗位账号，口令不在前端保存/显示 -->
         <div class="hcl-roster">
           <div class="hcl-roster-head">
             <span class="hcl-roster-title">今 日 值 班</span>
@@ -150,13 +150,13 @@
           <div class="hcl-roster-list">
             <button
               v-for="p in persons" :key="p.u" type="button" class="hcl-roster-item"
-              :title="`${p.name} · ${p.role} · 账号 ${p.u}`" @click="fill(p)">
+              :title="`${p.name} · ${p.role}`" @click="fill(p)">
               <span class="hcl-rname">{{ p.name }}</span>
               <span class="hcl-rrole">{{ p.role }}</span>
-              <span class="hcl-rno">{{ p.no }}</span>
+              <span class="hcl-rno">{{ p.u }}</span>
             </button>
           </div>
-          <p class="hcl-roster-tip">点值班人姓名，代入其岗位账号</p>
+          <p class="hcl-roster-tip">点值班人姓名，代入其岗位账号；口令请自行输入</p>
         </div>
 
         <!-- 制度告知 -->
@@ -205,18 +205,18 @@ const success = ref(false)
 const errorMsg = ref('')
 const shaking = ref(false)
 
-/* 今日值班表：五位值班人对应五个岗位账号，点姓名即代入（密码统一 123456） */
+/* 今日值班表：五位值班人对应五个岗位账号，点姓名只代入账号，不保存口令 */
 const persons = [
-  { name: '陈老师', role: '申请人', no: '01', u: 'chen', p: '123456' },
-  { name: '张教授', role: '导师', no: '02', u: 'zhang', p: '123456' },
-  { name: '李安全员', role: '安全员', no: '03', u: 'li', p: '123456' },
-  { name: '王院长', role: '学院', no: '04', u: 'wang', p: '123456' },
-  { name: '刘同学', role: '学生', no: '05', u: 'liu', p: '123456' }
+  { name: '陈老师', role: '申请人', u: 'chen' },
+  { name: '张教授', role: '导师', u: 'zhang' },
+  { name: '李安全员', role: '安全员', u: 'li' },
+  { name: '王院长', role: '学院', u: 'wang' },
+  { name: '刘同学', role: '学生', u: 'liu' }
 ]
 
 function fill (p) {
   username.value = p.u
-  password.value = p.p
+  password.value = ''
   errorMsg.value = ''
 }
 

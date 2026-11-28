@@ -19,7 +19,11 @@ function attachWatchers(page, issues) {
   page.on('pageerror', err => issues.push(`pageerror: ${err.message}`))
   page.on('requestfailed', req => {
     const url = req.url()
-    if (!url.includes('favicon')) issues.push(`requestfailed: ${url}`)
+    if (url.includes('favicon')) return
+    // 导航/刷新会取消在途请求（net::ERR_ABORTED），属于正常行为，不算失败
+    const reason = (req.failure() && req.failure().errorText) || ''
+    if (reason.includes('ERR_ABORTED')) return
+    issues.push(`requestfailed: ${url} (${reason})`)
   })
   page.on('response', resp => {
     if (resp.status() >= 400) issues.push(`http${resp.status()}: ${resp.url()}`)
