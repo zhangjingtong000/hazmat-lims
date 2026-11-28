@@ -28,51 +28,26 @@
       <nav class="nav-center">
         <router-link class="nav-item" :class="{ active: isActive('/dashboard') }" to="/dashboard">首页</router-link>
 
-        <el-dropdown trigger="hover" @command="go">
-          <span class="nav-item" :class="{ active: inGroup('/chem/info', '/chem/purchase') }">
-            化学品管理 <el-icon><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu class="nav-group-menu">
-              <el-dropdown-item command="/chem/info">化学品台账</el-dropdown-item>
-              <el-dropdown-item command="/chem/purchase">申购管理</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-
-        <el-dropdown trigger="hover" @command="go">
-          <span class="nav-item" :class="{ active: inGroup('/chem/stockin', '/chem/requisition', '/chem/batch', '/chem/todo', '/chem/waste', '/chem/check') }">
-            库存与监管 <el-icon><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu class="nav-group-menu">
-              <el-dropdown-item command="/chem/stockin">入库双签</el-dropdown-item>
-              <el-dropdown-item command="/chem/requisition">领用与归还</el-dropdown-item>
-              <el-dropdown-item command="/chem/batch">批次监管</el-dropdown-item>
-              <el-dropdown-item command="/chem/todo" divided>审批中心</el-dropdown-item>
-              <el-dropdown-item command="/chem/waste">废弃处置</el-dropdown-item>
-              <el-dropdown-item command="/chem/check">账物盘点</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-
-        <el-dropdown trigger="hover" @command="go">
-          <span class="nav-item" :class="{ active: inGroup('/chem/base', '/chem/stats') }">
-            系统 <el-icon><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu class="nav-group-menu">
-              <el-dropdown-item command="/chem/base">基础数据</el-dropdown-item>
-              <el-dropdown-item command="/chem/stats">统计报表</el-dropdown-item>
-              <el-dropdown-item command="/system/user" divided>用户管理</el-dropdown-item>
-              <el-dropdown-item command="/system/role">角色管理</el-dropdown-item>
-              <el-dropdown-item command="/system/menu">菜单管理</el-dropdown-item>
-              <el-dropdown-item command="/system/operlog">操作日志</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-
-        <router-link class="nav-item" :class="{ active: isActive('/biz/notice') }" to="/biz/notice">信息</router-link>
+        <!-- 导航由 /auth/me 的 menus 树渲染：账号角色不同，看到的目录与页面就不同；
+             只有一个页面的目录压平成直接入口（如"信息"→通知公告），与二级下拉区分开 -->
+        <template v-for="dir in navMenus" :key="dir.id">
+          <router-link v-if="dir.single" class="nav-item"
+            :class="{ active: isActive(dir.single.path) }" :to="dir.single.path">
+            {{ dir.menuName }}
+          </router-link>
+          <el-dropdown v-else trigger="hover" @command="go">
+            <span class="nav-item" :class="{ active: dir.children.some(c => inGroup(c.path)) }">
+              {{ dir.menuName }} <el-icon><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu class="nav-group-menu">
+                <el-dropdown-item v-for="c in dir.children" :key="c.id" :command="c.path">
+                  {{ c.menuName }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </template>
       </nav>
 
       <div class="nav-right">
@@ -177,6 +152,14 @@ const isActive = p => route.path === p
 const inGroup = (...prefixes) => prefixes.some(p => route.path.startsWith(p))
 const go = cmd => router.push(cmd)
 
+/** 导航树：只取目录型节点（后端 menus 里同时含有按钮型 F 节点，那些不是页面入口） */
+const navMenus = computed(() => (auth.menus || [])
+  .map(d => {
+    const children = (d.children || []).filter(c => c.menuType === 'C' && c.path)
+    return { id: d.id, menuName: d.menuName, children, single: children.length === 1 ? children[0] : null }
+  })
+  .filter(d => d.children.length > 0))
+
 /* 引导带只在单据类页面出现（台账/基础数据/系统页不出现） */
 const DOC_PATH_RE = /^\/chem\/(purchase|stockin|requisition|req|todo|waste|check)(\/\d+)?$/
 const showRelay = computed(() => DOC_PATH_RE.test(route.path))
@@ -226,10 +209,12 @@ async function doChangePwd() {
     return
   }
   await changePassword(pwdForm.oldPassword, pwdForm.newPassword)
-  ElMessage.success('密码已更新，请牢记新口令')
+  ElMessage.success('密码已更新，请用新口令重新登录')
   pwdVisible.value = false
   pwdForm.oldPassword = ''
   pwdForm.newPassword = ''
+  // 后端已吊销该账号全部令牌，旧会话不能继续用
+  router.replace('/login')
 }
 
 async function onUserCmd(cmd) {
@@ -238,7 +223,7 @@ async function onUserCmd(cmd) {
     nextTick(() => pwdFormRef.value?.clearValidate())
   } else if (cmd === 'logout') {
     await ElMessageBox.confirm('确定退出登录？', '提示', { type: 'warning' })
-    logout()
+    await logout()
     router.replace('/login')
   }
 }

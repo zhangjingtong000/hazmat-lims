@@ -37,9 +37,20 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (payload == null) {
             return reject(request, response, 401, "未登录或登录已过期");
         }
+        // 令牌本身有效不代表账号仍可用：签名只证明"这枚令牌是我签发的"，
+        // 停用/删除账号必须每次回到 sys_user 判定，否则旧令牌能一直用到过期。
+        com.qingyan.hazmat.system.entity.SysUser user = userMapper.selectById(payload.uid);
+        if (user == null) {
+            return reject(request, response, 401, "用户不存在或已被删除");
+        }
+        if (!"0".equals(user.getStatus())) {
+            return reject(request, response, 401, "账号已停用");
+        }
 
         request.setAttribute("uid", payload.uid);
         request.setAttribute("username", payload.username);
+        // 供 /auth/logout 注销当前这一枚令牌
+        request.setAttribute("token", token);
 
         RequirePerm required = hm.getMethodAnnotation(RequirePerm.class);
         if (required != null) {

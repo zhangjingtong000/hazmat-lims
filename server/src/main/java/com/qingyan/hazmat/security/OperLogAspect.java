@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,20 +24,26 @@ import java.util.Map;
 @Component
 public class OperLogAspect {
 
-    private static final Map<String, String> MODULES = Map.ofEntries(
-            Map.entry("/asset/info", "资产台账"),
-            Map.entry("/asset/borrow", "借用管理"),
-            Map.entry("/asset/repair", "维修记录"),
-            Map.entry("/asset/scrap", "报废管理"),
-            Map.entry("/asset/check", "资产盘点"),
-            Map.entry("/asset/dict", "基础数据"),
-            Map.entry("/asset/attachment", "资产附件"),
+    /**
+     * 路径前缀 → 模块名。顺序即优先级：更长的前缀写在前面，
+     * 否则 {@code /chem/req} 会把 {@code /chem/req/return/...} 也吞掉。
+     * 匹配规则是"相等"或"以 前缀 + / 开头"，不做裸 startsWith，避免误吃同名前缀路径。
+     */
+    private static final List<Map.Entry<String, String>> MODULES = List.of(
+            Map.entry("/chem/purchase", "申购审批"),
+            Map.entry("/chem/stockin", "入库登记"),
+            Map.entry("/chem/req/return", "归还管理"),
+            Map.entry("/chem/req", "领用管理"),
+            Map.entry("/chem/waste", "废弃处置"),
+            Map.entry("/chem/check", "盘点对账"),
+            Map.entry("/chem/stats", "预警看板"),
             Map.entry("/system/user", "用户管理"),
             Map.entry("/system/role", "角色管理"),
             Map.entry("/system/menu", "菜单管理"),
             Map.entry("/system/operlog", "操作日志"),
             Map.entry("/biz/notice", "通知公告"),
             Map.entry("/auth/password", "个人设置"),
+            Map.entry("/auth/logout", "登录"),
             Map.entry("/auth/login", "登录")
     );
 
@@ -71,11 +78,7 @@ public class OperLogAspect {
     private void insert(String path, String method, String operator, String status) {
         try {
             OperLog log = new OperLog();
-            log.setModule(MODULES.getOrDefault(path, MODULES.entrySet().stream()
-                    .filter(e -> path.startsWith(e.getKey()))
-                    .map(Map.Entry::getValue)
-                    .findFirst()
-                    .orElse(path)));
+            log.setModule(moduleOf(path));
             String action = refine(method, path) + " · " + status;
             log.setAction(action.length() > 200 ? action.substring(0, 197) + "..." : action);
             log.setOperator(operator);
@@ -84,6 +87,16 @@ public class OperLogAspect {
         } catch (Exception ignore) {
             // 日志写入失败不影响业务响应
         }
+    }
+
+    /** 路径 → 模块名；没有映射的路径保留原始路径，好过错标成别的模块。 */
+    static String moduleOf(String path) {
+        for (Map.Entry<String, String> e : MODULES) {
+            if (path.equals(e.getKey()) || path.startsWith(e.getKey() + "/")) {
+                return e.getValue();
+            }
+        }
+        return path;
     }
 
     private String refine(String method, String path) {

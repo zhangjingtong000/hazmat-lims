@@ -213,12 +213,12 @@ public class AiAskService {
     private Map<String, Object> replay(AiQaCache hit, String q) {
         try {
             JsonNode n = M.readTree(hit.getIntentJson());
-            String intent = n.path("intent").asText("");
+            String intent = n.path("intent").asString("");
             String summary = hit.getAnswerSummary() == null ? "" : hit.getAnswerSummary();
             if ("regs".equals(intent)) {
                 List<RegArticle> regs = new ArrayList<>();
                 for (JsonNode no : n.path("nos")) {
-                    String[] parts = no.asText("").split(" ", 2);
+                    String[] parts = no.asString("").split(" ", 2);
                     if (parts.length == 2) {
                         RegArticle a = regCorpus.findByNo(parts[0], parts[1]);
                         if (a != null) {
@@ -288,7 +288,7 @@ public class AiAskService {
                 return null;
             }
             JsonNode n = M.readTree(modelOut.substring(s, e + 1));
-            String intent = n.path("intent").asText("");
+            String intent = n.path("intent").asString("");
             if (!"list".equals(intent) && !"stats".equals(intent) && !"regs".equals(intent)) {
                 return null;
             }
@@ -303,7 +303,7 @@ public class AiAskService {
     }
 
     private static String textOrNull(JsonNode n) {
-        return n.isMissingNode() || n.isNull() || n.asText("").isBlank() ? null : n.asText().strip();
+        return n.isMissingNode() || n.isNull() || n.asString("").isBlank() ? null : n.asString().strip();
     }
 
     /** 数值字段白名单校验：非整数/越界一律 null（LLM 越权条件拦截点之一）。 */

@@ -48,7 +48,7 @@ async function apiList(token, path, params = {}) {
   return body.data
 }
 
-/* ═══ accept.spec.js 扩展区（只追加，不改动上方既有定义/导出） ═══ */
+/* 验收用例补充的账号与请求包装（与上方基础辅助共用一个导出面） */
 const ZHANG = { username: 'zhang', password: '123456' }
 const WANG = { username: 'wang', password: '123456' }
 const CHEN = { username: 'chen', password: '123456' }

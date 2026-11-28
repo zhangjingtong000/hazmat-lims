@@ -1,8 +1,9 @@
 import { reactive } from 'vue'
-import { login as apiLogin, me as apiMe, changePassword as apiPwd } from '../api/auth'
+import { login as apiLogin, me as apiMe, changePassword as apiPwd, logout as apiLogout } from '../api/auth'
 
 /**
- * 会话仓库：token 持久化 localStorage，用户档案（roles/perms）内存保存。
+ * 会话仓库：token 持久化 sessionStorage，用户档案（roles/perms/menus）内存保存。
+ * 菜单树来自后端 /auth/me 的 menus（按账号角色过滤后的结果），前端不再另抄一份硬编码导航。
  * 按钮级权限判定 hasPerm() 与 25 键种子标识一一对应。
  */
 export const auth = reactive({
@@ -10,6 +11,7 @@ export const auth = reactive({
   user: null,
   roles: [],
   perms: [],
+  menus: [],
   loaded: false
 })
 
@@ -31,6 +33,7 @@ export async function login(username, password) {
   auth.user = data.user
   auth.roles = data.roles || []
   auth.perms = data.perms || []
+  auth.menus = data.menus || []
   auth.loaded = true
   sessionStorage.setItem('token', data.token)
   return data
@@ -43,6 +46,7 @@ export async function loadProfile() {
     auth.user = data.user
     auth.roles = data.roles || []
     auth.perms = data.perms || []
+    auth.menus = data.menus || []
     auth.loaded = true
     return data
   } catch (e) {
@@ -50,15 +54,28 @@ export async function loadProfile() {
   }
 }
 
+/** 自助改密：后端会吊销该账号已签发的全部令牌，本地会话必须同步作废，否则下一个请求就 401 */
 export async function changePassword(oldPassword, newPassword) {
   await apiPwd({ oldPassword, newPassword })
+  clearSession()
 }
 
-export function logout() {
+function clearSession() {
   auth.token = ''
   auth.user = null
   auth.roles = []
   auth.perms = []
+  auth.menus = []
   auth.loaded = false
   sessionStorage.removeItem('token')
+}
+
+/** 登出：先注销服务端这一枚令牌（失败不阻断，本地照样清），再清本地会话 */
+export async function logout() {
+  try {
+    await apiLogout()
+  } catch (e) {
+    // 令牌已过期/网络异常时后端本就没有有效会话，本地清理即可
+  }
+  clearSession()
 }

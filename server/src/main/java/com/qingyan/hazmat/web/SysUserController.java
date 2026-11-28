@@ -28,10 +28,13 @@ public class SysUserController {
 
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
+    private final com.qingyan.hazmat.security.TokenService tokenService;
 
-    public SysUserController(SysUserMapper userMapper, SysRoleMapper roleMapper) {
+    public SysUserController(SysUserMapper userMapper, SysRoleMapper roleMapper,
+                             com.qingyan.hazmat.security.TokenService tokenService) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
+        this.tokenService = tokenService;
     }
 
     @GetMapping("/list")
@@ -75,7 +78,12 @@ public class SysUserController {
             throw new BizException(400, "缺少用户 ID");
         }
         com.qingyan.hazmat.common.Validators.maxLen(user.getNickname(), 50, "昵称");
+        SysUser before = userMapper.selectById(user.getId());
         userMapper.update(user);
+        // 状态被改动（停用/启用）即吊销该用户已签发令牌：启用后也不让停用期间的旧令牌复活
+        if (user.getStatus() != null && before != null && !user.getStatus().equals(before.getStatus())) {
+            tokenService.revokeUser(user.getId());
+        }
         return Result.ok();
     }
 
@@ -122,6 +130,8 @@ public class SysUserController {
         String password = body.get("password");
         com.qingyan.hazmat.common.Validators.password(password, null);
         userMapper.updatePassword(id, PasswordUtil.encode(password));
+        // 口令变了，旧令牌全部作废：不允许"知道旧口令的人被重置后仍用旧令牌进门"
+        tokenService.revokeUser(id);
         return Result.ok();
     }
 }

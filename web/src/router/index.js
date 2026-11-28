@@ -1,31 +1,34 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import MainLayout from '../layouts/MainLayout.vue'
 import LoginView from '../views/LoginView.vue'
-import DashboardView from '../views/DashboardView.vue'
-import ChemInfoList from '../views/chem/ChemInfoList.vue'
-import ChemInfoDetail from '../views/chem/ChemInfoDetail.vue'
-import PurchaseList from '../views/chem/PurchaseList.vue'
-import StockInList from '../views/chem/StockInList.vue'
-import RequisitionList from '../views/chem/RequisitionList.vue'
-import RequisitionDetail from '../views/chem/RequisitionDetail.vue'
-import BatchList from '../views/chem/BatchList.vue'
-import TodoCenter from '../views/chem/TodoCenter.vue'
-import WasteList from '../views/chem/WasteList.vue'
-import WasteDetail from '../views/chem/WasteDetail.vue'
-import CheckList from '../views/chem/CheckList.vue'
-import CheckDetail from '../views/chem/CheckDetail.vue'
-import BaseDataView from '../views/chem/BaseDataView.vue'
-import StatsReport from '../views/chem/StatsReport.vue'
-import ScreenView from '../views/screen/ScreenView.vue'
-import UserList from '../views/system/UserList.vue'
-import RoleList from '../views/system/RoleList.vue'
-import MenuList from '../views/system/MenuList.vue'
-import OperLogList from '../views/system/OperLogList.vue'
-import NoticeList from '../views/biz/NoticeList.vue'
-import PurchasePrint from '../views/print/PurchasePrint.vue'
-import ReqPrint from '../views/print/ReqPrint.vue'
-import WastePrint from '../views/print/WastePrint.vue'
-import LabelPrint from '../views/print/LabelPrint.vue'
+
+// 路由级懒加载：首屏只加载布局与登录页，其余页面按访问时的 chunk 拉取。
+// 打印页与大屏尤其值得拆开——它们带 Three.js / 打印样式，常规办公流程用不到。
+const DashboardView = () => import('../views/DashboardView.vue')
+const ChemInfoList = () => import('../views/chem/ChemInfoList.vue')
+const ChemInfoDetail = () => import('../views/chem/ChemInfoDetail.vue')
+const PurchaseList = () => import('../views/chem/PurchaseList.vue')
+const StockInList = () => import('../views/chem/StockInList.vue')
+const RequisitionList = () => import('../views/chem/RequisitionList.vue')
+const RequisitionDetail = () => import('../views/chem/RequisitionDetail.vue')
+const BatchList = () => import('../views/chem/BatchList.vue')
+const TodoCenter = () => import('../views/chem/TodoCenter.vue')
+const WasteList = () => import('../views/chem/WasteList.vue')
+const WasteDetail = () => import('../views/chem/WasteDetail.vue')
+const CheckList = () => import('../views/chem/CheckList.vue')
+const CheckDetail = () => import('../views/chem/CheckDetail.vue')
+const BaseDataView = () => import('../views/chem/BaseDataView.vue')
+const StatsReport = () => import('../views/chem/StatsReport.vue')
+const ScreenView = () => import('../views/screen/ScreenView.vue')
+const UserList = () => import('../views/system/UserList.vue')
+const RoleList = () => import('../views/system/RoleList.vue')
+const MenuList = () => import('../views/system/MenuList.vue')
+const OperLogList = () => import('../views/system/OperLogList.vue')
+const NoticeList = () => import('../views/biz/NoticeList.vue')
+const PurchasePrint = () => import('../views/print/PurchasePrint.vue')
+const ReqPrint = () => import('../views/print/ReqPrint.vue')
+const WastePrint = () => import('../views/print/WastePrint.vue')
+const LabelPrint = () => import('../views/print/LabelPrint.vue')
 
 const router = createRouter({
   history: createWebHashHistory(),

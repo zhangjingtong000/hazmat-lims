@@ -73,11 +73,20 @@ public class AuthController {
         return Result.ok(authService.profile(uid));
     }
 
-    /** 自助修改密码（任何登录用户） */
+    /** 自助修改密码（任何登录用户）。改完即撤销该用户全部已签发令牌，须用新口令重新登录。 */
     @PostMapping("/auth/password")
     public Result<Void> changePassword(@RequestBody Map<String, String> body, HttpServletRequest request) {
         long uid = ((Number) request.getAttribute("uid")).longValue();
         authService.changePassword(uid, body.get("oldPassword"), body.get("newPassword"));
+        tokenService.revokeUser(uid);
+        return Result.ok();
+    }
+
+    /** 登出：只注销当前这一枚令牌，其他设备/标签页的会话不受影响。 */
+    @PostMapping("/auth/logout")
+    public Result<Void> logout(HttpServletRequest request) {
+        String token = (String) request.getAttribute("token");
+        tokenService.revoke(token, tokenService.verify(token));
         return Result.ok();
     }
 }

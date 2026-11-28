@@ -75,7 +75,7 @@ public class OpenAiCompatClient implements AiClient {
             }
             JsonNode content = mapper.readTree(resp.body())
                     .path("choices").path(0).path("message").path("content");
-            String text = content.isMissingNode() ? null : content.asText();
+            String text = content.isMissingNode() ? null : content.asString();
             return (text == null || text.isBlank()) ? null : text;
         } catch (Exception e) {
             log.debug("AI 调用失败，走降级：{}", e.getClass().getSimpleName());
